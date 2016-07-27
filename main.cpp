@@ -45,8 +45,8 @@ void initVectors(){
         y=(double)rand()/RAND_MAX;
         y = -20+y*40;
 
-        pos.setComponent(0, x);
-        pos.setComponent(2, y);
+        pos.setComponent(0, 0);
+        pos.setComponent(2, -30.0);
         pos.setComponent(1, -.1);
         boats[i].setPosition(pos);
     }
@@ -56,13 +56,14 @@ void initVectors(){
     for(int i=0; i<10; i++){
         ang = (double)rand()/RAND_MAX;
         ang*=360.0;
+        ang=270.0;
         cout<<i<<": "<<ang<<endl;
 	boats[i].setDirection(ang);
     }
 
     //generate tide
-    //tide.setComponent(0,((double)rand()/RAND_MAX)*.0001-0.00005);
-    //tide.setComponent(2,((double)rand()/RAND_MAX)*.0001-0.00005);
+    tide.setComponent(0,((double)rand()/RAND_MAX)*.1-0.05);
+    tide.setComponent(2,((double)rand()/RAND_MAX)*.1-0.05);
     tide.setComponent(0, 0);
     tide.setComponent(2, 0);
     tide.setComponent(1, 0);
@@ -70,11 +71,11 @@ void initVectors(){
     //generate targets
     for(int i=0; i<4; i++){
         x = (double)rand()/RAND_MAX;
-        x =  -10 + x*20;
+        x =  -20 + x*40;
         y = (double)rand()/RAND_MAX;
-        y = -10 + y*20;
-        targets[i].setComponent(0, x);
-        targets[i].setComponent(2, y);
+        y = -20 + y*40;
+        targets[i].setComponent(0, 9);
+        targets[i].setComponent(2, 20.0);
         targets[i].setComponent(1, 1);
     }
     double w[] = {0.0, 0.0, 3.0};
@@ -171,6 +172,7 @@ static void display(void){
     auto now = chrono::steady_clock::now();
     chrono::duration<double> diff = now-start;
     if(diff.count() >  1.0/60.0){
+    //if(diff.count()>0.05){
         glMatrixMode (GL_PROJECTION);
         glLoadIdentity ();
         glFrustum (-1.0, 1.0, -1.0, 1.0, 1.5, 2000.0);
@@ -205,13 +207,40 @@ static void display(void){
         physVector wind(3, w);
 
         //draw boats
-        for(int i=0; i<4; i++){
+        for(int i=0; i<1; i++){
             glPushMatrix();
                 glColor3d(1, 0, 0);
                 glTranslated(targets[i].getComponent(0), targets[i].getComponent(1), targets[i].getComponent(2));
                 glutSolidSphere(0.5, 10, 10);
             glPopMatrix();
         }
+        //move towards target
+        //find the angle difference to the target
+        physVector vectToTarget = targets[0]-boats[0].getPosition();
+        physVector directionVector(3);
+        directionVector.setComponent(0, cos((boats[0].getDirection()/180.0)*M_PI));
+        directionVector.setComponent(2, sin((boats[0].getDirection()/180.0)*M_PI));
+        double angleToTarget = directionVector&vectToTarget;
+        if(timeStep%10 == 0)
+        cout<<"Angle to target: "<<angleToTarget<<"   ";
+        //find closest direction to target
+        int direction = directionVector|vectToTarget;
+
+        //modify direction to reach target
+        if(angleToTarget > -0.1 && angleToTarget < 0.1){
+            boats[0].setRudder(90);
+        }
+        if(angleToTarget > 180){
+            
+        }
+        if(angleToTarget > 0){
+            boats[0].setRudder(boats[0].getRudder()-(0.3));
+        }
+        else{
+            boats[0].setRudder(boats[0].getRudder()+0.3);
+        }
+
+
         for(int i =0; i<1; i++){
     //        if(pos[i].getComponent(0)<-3) pos[i].setComponent(0, pos[i].getComponent(0)+6);
     //        if(pos[i].getComponent(0)>3) pos[i].setComponent(0, pos[i].getComponent(0)-6);
@@ -236,6 +265,12 @@ static void key(unsigned char key, int xx, int yy){
         case 'q':
             exit(0);
             break;
+	case 'a':
+	    boats[0].setRudder(boats[0].getRudder()-1.0);
+	    break;
+	case 'd':
+	    boats[0].setRudder(boats[0].getRudder()+1.0);
+        break;
     }
 
     glutPostRedisplay();

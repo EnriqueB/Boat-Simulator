@@ -11,8 +11,8 @@ class boat{
         physVector position;
         double rudder;
         double sail;
-	battery bat;
-	double direction;
+    	battery bat;
+	    double direction;
 
     public:
        boat();
@@ -54,6 +54,12 @@ void boat::setPosition(physVector pos){
 
 void boat::setRudder(double r){
     rudder = r;
+    if(rudder < 20){
+	    rudder = 20;
+    }
+    else if(rudder >160){
+        rudder = 160;
+    }
 }
 
 void boat::setSail(double s){
@@ -62,6 +68,12 @@ void boat::setSail(double s){
 
 void boat::setDirection(double a){
     direction = a;
+    if(direction>360){
+        direction -= 360;
+    }
+    if(direction<0){
+        direction += 359.999;
+    }
 }
 
 physVector boat::getPosition(){
@@ -81,7 +93,7 @@ double boat::getDirection(){
 }
 
 void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
-   // position = position + tide;
+    position = position + tide;
     //leeway, depends on boat
 
 
@@ -91,7 +103,7 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     double speed=0;
     physVector north(3);
     north.setComponent(0, 1);
-    double windAngle = (wind*-1)%north;
+    double windAngle = (wind*-1.0)%north;
     //compare windAngle to boatAngle
     double BoatWindAngle = abs(windAngle-direction);
 
@@ -110,35 +122,32 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     }
 
     else if(BoatWindAngle > 95.0){
-        speed = (180.0-BoatWindAngle)/(180.0-95.0);
+        speed = (0.7-1)/(180-95)*BoatWindAngle + (1-((0.7-1)/(180-95)*95));
     }
     speed *= wind.getMagnitude()/60.0;
 
     //account for rudder
-    /*
     if(rudder < 90){
-	    direction+=(90.0-rudder);
+	    direction-=((90.0-rudder)/600.0);
 	    if(direction > 359.9999){
-		direction -=360.0;
+		    direction -=360.0;
 	    }
     }
     else{
-	    direction-=(rudder-90.0);
+	    direction+=((rudder-90.0)/600.0);
 	    if(direction<0.0001){
 		    direction+=360.0;
 	    }
     }
-    */
     physVector directionVector(3);
     directionVector.setComponent(0, cos((direction/180.0)*M_PI)*speed);
-    directionVector.setComponent(2, -1*sin((direction/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
+    directionVector.setComponent(2, sin((direction/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
 
     position = position + (directionVector);
-    /*
-    if(timeStep%100==0){
-	    position.print();
+    if(timeStep%10==0){
+        directionVector.print();
+        std::cout<<"Rudder: "<<rudder<<" Direction: "<<direction<<" Speed: "<<speed<<" BoatWingAngle: "<<BoatWindAngle<<"\n";
     }
-*/
     //wave movement
     position.setComponent(1, position.getComponent(1)+sin((timeStep/180.0*3.141600))/150.0);
 }

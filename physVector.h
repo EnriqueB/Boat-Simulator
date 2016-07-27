@@ -33,6 +33,8 @@ class physVector {
 		double operator^(const physVector& vect); //dot product
 		physVector operator/(const physVector& vect); //cross product
 		double operator%(const physVector& vect); //angle between vectors
+        double operator&(const physVector& vect);//shortest angle between vectors
+        int operator|(const physVector& vect);//find out if this is to the left or right of vect
 		physVector unit();
 
 		void print();
@@ -42,7 +44,6 @@ class physVector {
 		=,
 		*/
 };
-
 physVector::physVector(){
 	dimensions = 0;
 	magnitude = 0;
@@ -196,20 +197,6 @@ physVector physVector::operator/(const physVector& vect) {
 	return ans;
 }
 double physVector::operator%(const physVector& vect) {
-    /*
-	double scalar = (*this)^vect;
-	if (scalar > -0.00000000001 && scalar < 0.00000000001) {
-		return 90;
-	}
-	double angle = acos(scalar / (this->magnitude * vect.magnitude));
-    angle *=180/M_PI;
-    //check if the angle is greater than 180
-
-
-	return angle*180/M_PI;
-    */
-    //HARDCODED FOR 2 DIMENSIONS, USING X AND Z
-    //obtain true angle for vector 1
     double angle1 = 0;
     if((this->components[0]<-0.0001 || this->components[0] > 0.0001) || (this->components[2]<-0.0001 || this->components[2]>0.0001)){
         angle1= atan2(this->components[2], this->components[0])*180.0/M_PI;
@@ -225,7 +212,7 @@ double physVector::operator%(const physVector& vect) {
     if(angle2 < 0){
         angle2 = 360+angle2;
     }
-    return abs(angle1-angle2);
+    return angle1-angle2;
 }
 
 physVector physVector::unit() {
@@ -235,6 +222,19 @@ physVector physVector::unit() {
 		ans.setComponent(i, this->components[i] / mag);
 	}
 	return ans;
+}
+
+double physVector::operator&(const physVector& vect){
+	double scalar = (*this)^vect;
+	if (scalar > -0.00000000001 && scalar < 0.00000000001) {
+		return 90;
+	}
+	double angle = acos(scalar / (this->magnitude * vect.magnitude));
+	return angle*180.0/M_PI;
+}
+    
+int physVector::operator|(const physVector& vect){
+    return 0;
 }
 
 void physVector::print(){
