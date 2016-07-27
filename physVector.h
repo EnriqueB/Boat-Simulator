@@ -3,6 +3,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <string.h>
+#include <iostream>
 
 
 class physVector {
@@ -33,6 +34,8 @@ class physVector {
 		physVector operator/(const physVector& vect); //cross product
 		double operator%(const physVector& vect); //angle between vectors
 		physVector unit();
+
+		void print();
 
 		/*
 		To add:
@@ -193,12 +196,36 @@ physVector physVector::operator/(const physVector& vect) {
 	return ans;
 }
 double physVector::operator%(const physVector& vect) {
+    /*
 	double scalar = (*this)^vect;
 	if (scalar > -0.00000000001 && scalar < 0.00000000001) {
 		return 90;
 	}
 	double angle = acos(scalar / (this->magnitude * vect.magnitude));
+    angle *=180/M_PI;
+    //check if the angle is greater than 180
+
+
 	return angle*180/M_PI;
+    */
+    //HARDCODED FOR 2 DIMENSIONS, USING X AND Z
+    //obtain true angle for vector 1
+    double angle1 = 0;
+    if((this->components[0]<-0.0001 || this->components[0] > 0.0001) || (this->components[2]<-0.0001 || this->components[2]>0.0001)){
+        angle1= atan2(this->components[2], this->components[0])*180.0/M_PI;
+    }
+    if(angle1 <0){
+        angle1 = 360+angle1;
+    }
+    //obtain true angle for vector 2
+    double angle2 = 0;
+    if((vect.components[0]<-0.0001 || vect.components[0] > 0.0001) || (vect.components[2]<-0.0001 || vect.components[2]>0.0001)){
+            angle2 = atan2(vect.components[2], vect.components[0])*180.0/M_PI;
+    }
+    if(angle2 < 0){
+        angle2 = 360+angle2;
+    }
+    return abs(angle1-angle2);
 }
 
 physVector physVector::unit() {
@@ -209,4 +236,13 @@ physVector physVector::unit() {
 	}
 	return ans;
 }
+
+void physVector::print(){
+	for(int i=0; i<dimensions; i++){
+		std::cout<<i<<": "<<components[i]<<"\t";
+	}
+	std::cout<<std::endl;
+}
+
 #endif
+

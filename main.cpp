@@ -1,23 +1,5 @@
-/*
-// * GLUT Shapes Demo
-// *
-// * Written by Nigel Stewart November 2003
-// *
-// * This program is test harness for the sphere, cone
-// * and torus shapes in GLUT.
-// *
-// * Spinning wireframe and smooth shaded shapes are
-// * displayed until the ESC or q key is pressed.  The
-// * number of geometry stacks and slices can be adjusted
-// * using the + and - keys.
- */
-#include "windows.h"
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
 #include <GL/glut.h>
-#endif
-
+#include <chrono>
 #include "physVector.h"
 #include "boat.h"
 
@@ -26,7 +8,11 @@
 #include <time.h>
 #include <cmath>
 
+#define FPS 60
+
 using namespace std;
+
+auto start = chrono::steady_clock::now();
 
 // actual vector representing the camera's direction
 float lx=0.0f,lz=-1.0f, cy=0;
@@ -43,8 +29,9 @@ float accelerationVal;
 ////int dummy = 5;
 
 boat boats[10];
-physVector displacement [10];
+double angles[10];
 physVector tide(3);
+physVector targets [4];
 long long timeStep;
 
 void initVectors(){
@@ -65,15 +52,11 @@ void initVectors(){
         boats[i].setPosition(pos);
     }
 
-    //generate random displacements
+    //generate random angles
     for(int i=0; i<10; i++){
-        x = (double)rand()/RAND_MAX;
-        x = -0.01 + x*(0.02);
-        y = (double)rand()/RAND_MAX;
-        y = -0.01 +y*(0.02);
-        displacement[i].setComponent(0, x);
-        displacement[i].setComponent(2, y);
-        displacement[i].setComponent(1, 0);
+        angles[i] = (double)rand()/RAND_MAX;
+        angles[i] = angles[i]*360.0;
+        cout<<i<<": "<<angles[i]<<endl;
     }
 
     //generate tide
@@ -82,6 +65,17 @@ void initVectors(){
     tide.setComponent(0, 0);
     tide.setComponent(2, 0);
     tide.setComponent(1, 0);
+
+    //generate targets
+    for(int i=0; i<4; i++){
+        x = (double)rand()/RAND_MAX;
+        x =  -10 + x*20;
+        y = (double)rand()/RAND_MAX;
+        y = -10 + y*20;
+        targets[i].setComponent(0, x);
+        targets[i].setComponent(2, y);
+        targets[i].setComponent(1, 1);
+    }
 
 }
 
@@ -110,25 +104,13 @@ void changeSize(int w, int h){
 }
 
 void drawBoat(int i){
-    physVector dir(3);
-    dir.setComponent(0, 0);
-    dir.setComponent(1, 0);
-    dir.setComponent(2, 1);
     physVector pos = boats[i].getPosition();
-    double angle = displacement[i]%dir;
-    if(displacement[i].getComponent(0)<0){
-        angle = 180 - angle + 180;
-    }
-    if(timeStep%10000==0){
-        cout<<angle<<endl;
-    }
-
     glPushMatrix();
         //glRotated(angle, 0, 1, 0);
         //hull
         glPushMatrix();
             glTranslated(pos.getComponent(0), pos.getComponent(1), pos.getComponent(2));
-            glRotated(angle, 0, 1, 0);
+            glRotated(angles[i], 0, 1, 0);
             glScalef(0.5, .8, 1.2);
             glColor3d(0, 0, 0);
             glutWireCube(4);
@@ -139,7 +121,7 @@ void drawBoat(int i){
         //mast
         glPushMatrix();
             glTranslated(pos.getComponent(0), pos.getComponent(1)+2, pos.getComponent(2));
-            glRotated(angle, 0, 1, 0);
+            glRotated(angles[i], 0, 1, 0);
             glScalef(0.3, 5, 0.3);
             glColor3d(0, 0, 0);
             glutWireCube(0.8);
@@ -150,7 +132,7 @@ void drawBoat(int i){
         //cloth sail
         glPushMatrix();
             glTranslated(pos.getComponent(0)+0.5, pos.getComponent(1)+3.6, pos.getComponent(2));
-            glRotated(angle, 0, 1, 0);
+            glRotated(angles[i], 0, 1, 0);
             glScalef(1, 0.9, 0.3);
             glColor3d(0, 0, 0);
             glutWireCube(0.8);
@@ -161,7 +143,7 @@ void drawBoat(int i){
         //sphere at the front of the boat
         glPushMatrix();
             glTranslated(pos.getComponent(0), pos.getComponent(1), pos.getComponent(2)+0.3);
-            glRotated(angle, 0, 1, 0);
+            glRotated(angles[i], 0, 1, 0);
             glColor3d(0,0,0);
             glutWireSphere(0.05, 20, 3);
             glColor3d(1, 0, 0);
@@ -173,45 +155,64 @@ void drawBoat(int i){
 }
 
 static void display(void){
-    const double t = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
-    const double a = t*90.0;
+    auto now = chrono::steady_clock::now();
+    chrono::duration<double> diff = now-start;
+    if(diff.count() >  1.0/60.0){
+        glMatrixMode (GL_PROJECTION);
+        glLoadIdentity ();
+        glFrustum (-1.0, 1.0, -1.0, 1.0, 1.5, 2000.0);
+        glMatrixMode(GL_MODELVIEW);
+        const double t = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
+        const double a = t*90.0;
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glLoadIdentity();
-    // Set the camera
-    gluLookAt(	x, 10.0f+cy, z,
-    x+lx, 10.0f, z+lz,
-    0.0f, 1.0f, 0.0f);
+        glLoadIdentity();
+        // Set the camera
+        gluLookAt(	x, 10.0f+cy, z,
+        x+lx, 10.0f, z+lz,
+        0.0f, 1.0f, 0.0f);
 
-    // Draw ground
+        // Draw ground
 
-    //????
-    //glColor3f(0,0,.8);
-    glClearColor(0, 0, 1, 1);
-    glBegin(GL_QUADS);
-        glColor3d(0, 0, 0.6);
-        glVertex3f(-1000.0f, -0.05f, -1000.0f);
-        glVertex3f(-1000.0f, -0.05f, 1000.0f);
-        glVertex3f( 1000.0f, -0.05f, 1000.0f);
-        glVertex3f( 1000.0f, -0.05f, -1000.0f);
-    glEnd();
+        //????
+        //glColor3f(0,0,.8);
+        glClearColor(0, 0, 1, 1);
+        glBegin(GL_QUADS);
+            glColor3d(0, 0, 0.6);
+            glVertex3f(-1000.0f, -0.05f, -1000.0f);
+            glVertex3f(-1000.0f, -0.05f, 1000.0f);
+            glVertex3f( 1000.0f, -0.05f, 1000.0f);
+            glVertex3f( 1000.0f, -0.05f, -1000.0f);
+        glEnd();
 
+        glColor3d(0.65,0.35,0);
+        physVector pos;
+        double w[] = {0.0, 0.0, 3.0};
+        physVector wind(3, w);
 
-    glColor3d(0.65,0.35,0);
-    physVector pos;
-    double w[] = {.001, 0.0, 0};
-    physVector wind(3, w);
-    for(int i =0; i<10; i++){
-//        if(pos[i].getComponent(0)<-3) pos[i].setComponent(0, pos[i].getComponent(0)+6);
-//        if(pos[i].getComponent(0)>3) pos[i].setComponent(0, pos[i].getComponent(0)-6);
-//        if(pos[i].getComponent(1)<-3) pos[i].setComponent(1, pos[i].getComponent(1)+6);
-//        if(pos[i].getComponent(1)>3) pos[i].setComponent(1, pos[i].getComponent(1)-6);
-        boats[i].moveBoat(wind, tide, displacement[i], timeStep);
-        drawBoat(i);
+        //draw boats
+        for(int i=0; i<4; i++){
+            glPushMatrix();
+                glColor3d(1, 0, 0);
+                glTranslated(targets[i].getComponent(0), targets[i].getComponent(1), targets[i].getComponent(2));
+                glutSolidSphere(0.5, 10, 10);
+            glPopMatrix();
+        }
+        for(int i =0; i<3; i++){
+    //        if(pos[i].getComponent(0)<-3) pos[i].setComponent(0, pos[i].getComponent(0)+6);
+    //        if(pos[i].getComponent(0)>3) pos[i].setComponent(0, pos[i].getComponent(0)-6);
+    //        if(pos[i].getComponent(1)<-3) pos[i].setComponent(1, pos[i].getComponent(1)+6);
+    //        if(pos[i].getComponent(1)>3) pos[i].setComponent(1, pos[i].getComponent(1)-6);
+
+            //move and draw boats
+            boats[i].moveBoat(wind, tide, angles[i], timeStep);
+            drawBoat(i);
+        }
+        glutSwapBuffers();
+        timeStep++;
+	start = chrono::steady_clock::now();
     }
-    glutSwapBuffers();
-    timeStep++;
 }
 
 
@@ -292,7 +293,8 @@ int main(int argc, char *argv[]){
     glCullFace(GL_BACK);
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);/*
+    glDepthFunc(GL_LESS);
+    /*
     glEnable(GL_LIGHT0);
     glEnable(GL_NORMALIZE);
     glEnable(GL_COLOR_MATERIAL);
@@ -308,9 +310,12 @@ int main(int argc, char *argv[]){
     glMaterialfv(GL_FRONT, GL_SPECULAR,  mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
 */
+
+
     initVectors();
 
     glutMainLoop();
 
     return EXIT_SUCCESS;
 }
+

@@ -3,6 +3,7 @@
 
 #include "physVector.h"
 #include "battery.h"
+#include <iostream>
 
 class boat{
 
@@ -13,7 +14,7 @@ class boat{
 	    battery bat;
 
     public:
-        boat();
+       boat();
         boat(double x, double y);
         //setters
         void setPosition(physVector pos);
@@ -25,7 +26,7 @@ class boat{
         double getRudder();
         double getSail();
 
-        void moveBoat(physVector wind, physVector tide, physVector direction, long long timeStep);
+        void moveBoat(physVector wind, physVector tide, double direction, long long timeStep);
 };
 
 boat::boat(){
@@ -66,7 +67,7 @@ double boat::getSail(){
     return sail;
 }
 
-void boat::moveBoat(physVector wind, physVector tide, physVector direction, long long timeStep){
+void boat::moveBoat(physVector wind, physVector tide, double direction, long long timeStep){
     position = position + tide;
     //leeway, depends on boat
 
@@ -75,30 +76,39 @@ void boat::moveBoat(physVector wind, physVector tide, physVector direction, long
 
     //get angle of wind
     double speed;
-    double windAngle = direction%(wind*-1);
-    if (windAngle> 180.0){
-        windAngle = 360-windAngle;
+    physVector north(3);
+    north.setComponent(0, 1);
+    double windAngle = (wind)%north;
+    //compare windAngle to boatAngle
+    double BoatWindAngle = abs(windAngle-direction);
+
+    if (BoatWindAngle> 180.0){
+        BoatWindAngle = 360-BoatWindAngle;
     }
-    if (windAngle <= 25.0){
+    if (BoatWindAngle <= 25.0){
         //no go zone
         speed = 0;
     }
-    else if(windAngle > 25.0 && windAngle <=85.0){
-        speed = (windAngle-25.0)/(85.0-25.0);
+    else if(BoatWindAngle > 25.0 && BoatWindAngle <=85.0){
+        speed = (BoatWindAngle-25.0)/(85.0-25.0);
     }
-    else if(windAngle > 85.0 && windAngle <=95.0){
+    else if(BoatWindAngle > 85.0 && BoatWindAngle <=95.0){
         speed = 0.9;
     }
 
-    else if(windAngle > 95.0){
-        speed = (180.0-windAngle)/(180.0-95.0);
+    else if(BoatWindAngle > 95.0){
+        speed = (180.0-BoatWindAngle)/(180.0-95.0);
     }
-    speed *= wind.getMagnitude()*500;  //was 200  ...??
+    speed *= wind.getMagnitude()/60.0;
+    physVector directionVector(3);
+    directionVector.setComponent(0, cos((direction/180.0)*M_PI)*speed);
+    directionVector.setComponent(2, sin((direction/180.0)*M_PI)*speed);
+    directionVector.print();
 
-    position = position + (direction)*(speed);
+    position = position + (directionVector);
 
     //wave movement
-    position.setComponent(1, position.getComponent(1)+sin((timeStep/180.0*.31416))/10000);
+    position.setComponent(1, position.getComponent(1)+sin((timeStep/180.0*3.141600))/150.0);
 }
 
-#endif // BOAT_H
+#endif
