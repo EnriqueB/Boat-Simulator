@@ -29,7 +29,6 @@ float accelerationVal;
 ////int dummy = 5;
 
 boat boats[10];
-double angles[10];
 physVector tide(3);
 physVector targets [4];
 long long timeStep;
@@ -53,10 +52,12 @@ void initVectors(){
     }
 
     //generate random angles
+    double ang;
     for(int i=0; i<10; i++){
-        angles[i] = (double)rand()/RAND_MAX;
-        angles[i] = angles[i]*360.0;
-        cout<<i<<": "<<angles[i]<<endl;
+        ang = (double)rand()/RAND_MAX;
+        ang*=360.0;
+        cout<<i<<": "<<ang<<endl;
+	boats[i].setDirection(ang);
     }
 
     //generate tide
@@ -76,6 +77,14 @@ void initVectors(){
         targets[i].setComponent(2, y);
         targets[i].setComponent(1, 1);
     }
+    double w[] = {0.0, 0.0, 3.0};
+    physVector wind(3, w);
+
+    double n[] = {1.0, 0.0, 0.0};
+    physVector north(3, n);
+
+    cout<<wind%north<<endl;
+
 
 }
 
@@ -105,12 +114,16 @@ void changeSize(int w, int h){
 
 void drawBoat(int i){
     physVector pos = boats[i].getPosition();
+    double ang = boats[i].getDirection()-90;
+    if(ang<0){
+	    ang= 360+ang;
+    }
     glPushMatrix();
         //glRotated(angle, 0, 1, 0);
         //hull
         glPushMatrix();
             glTranslated(pos.getComponent(0), pos.getComponent(1), pos.getComponent(2));
-            glRotated(angles[i], 0, 1, 0);
+            glRotated(ang, 0, 1, 0);
             glScalef(0.5, .8, 1.2);
             glColor3d(0, 0, 0);
             glutWireCube(4);
@@ -121,7 +134,7 @@ void drawBoat(int i){
         //mast
         glPushMatrix();
             glTranslated(pos.getComponent(0), pos.getComponent(1)+2, pos.getComponent(2));
-            glRotated(angles[i], 0, 1, 0);
+            glRotated(ang, 0, 1, 0);
             glScalef(0.3, 5, 0.3);
             glColor3d(0, 0, 0);
             glutWireCube(0.8);
@@ -132,7 +145,7 @@ void drawBoat(int i){
         //cloth sail
         glPushMatrix();
             glTranslated(pos.getComponent(0)+0.5, pos.getComponent(1)+3.6, pos.getComponent(2));
-            glRotated(angles[i], 0, 1, 0);
+            glRotated(ang, 0, 1, 0);
             glScalef(1, 0.9, 0.3);
             glColor3d(0, 0, 0);
             glutWireCube(0.8);
@@ -142,12 +155,12 @@ void drawBoat(int i){
 
         //sphere at the front of the boat
         glPushMatrix();
-            glTranslated(pos.getComponent(0), pos.getComponent(1), pos.getComponent(2)+0.3);
-            glRotated(angles[i], 0, 1, 0);
+            glTranslated(pos.getComponent(0), pos.getComponent(1), pos.getComponent(2)+3);
+            glRotated(ang, 0, 1, 0);
             glColor3d(0,0,0);
-            glutWireSphere(0.05, 20, 3);
+            //glutWireSphere(0.5, 20, 3);
             glColor3d(1, 0, 0);
-            glutSolidSphere(0.051, 20, 3);
+            //glutSolidSphere(0.51, 20, 3);
         glPopMatrix();
         glTranslated(0,0,0);
     glPopMatrix();
@@ -199,14 +212,14 @@ static void display(void){
                 glutSolidSphere(0.5, 10, 10);
             glPopMatrix();
         }
-        for(int i =0; i<3; i++){
+        for(int i =0; i<1; i++){
     //        if(pos[i].getComponent(0)<-3) pos[i].setComponent(0, pos[i].getComponent(0)+6);
     //        if(pos[i].getComponent(0)>3) pos[i].setComponent(0, pos[i].getComponent(0)-6);
     //        if(pos[i].getComponent(1)<-3) pos[i].setComponent(1, pos[i].getComponent(1)+6);
     //        if(pos[i].getComponent(1)>3) pos[i].setComponent(1, pos[i].getComponent(1)-6);
 
             //move and draw boats
-            boats[i].moveBoat(wind, tide, angles[i], timeStep);
+            boats[i].moveBoat(wind, tide, timeStep);
             drawBoat(i);
         }
         glutSwapBuffers();

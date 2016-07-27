@@ -11,36 +11,41 @@ class boat{
         physVector position;
         double rudder;
         double sail;
-	    battery bat;
+	battery bat;
+	double direction;
 
     public:
        boat();
-        boat(double x, double y);
+        boat(double x, double y, double dir);
         //setters
         void setPosition(physVector pos);
         void setRudder(double r);
         void setSail(double s);
+	void setDirection(double a);
 
         //getters
         physVector getPosition();
         double getRudder();
         double getSail();
+	double getDirection();
 
-        void moveBoat(physVector wind, physVector tide, double direction, long long timeStep);
+        void moveBoat(physVector wind, physVector tide, long long timeStep);
 };
 
 boat::boat(){
     position.setDimensions(3);
-    rudder = 0;
+    rudder = 90;
     sail = 0;
+    direction = 0;
 }
 
-boat::boat(double x, double y){
+boat::boat(double x, double y, double dir){
     position.setComponent(0, x);
     position.setComponent(2, y);
     position.setComponent(1, 0);
-    rudder = 0;
+    rudder = 90;
     sail = 0;
+    direction = dir;
 }
 
 void boat::setPosition(physVector pos){
@@ -55,6 +60,10 @@ void boat::setSail(double s){
     sail = s;
 }
 
+void boat::setDirection(double a){
+    direction = a;
+}
+
 physVector boat::getPosition(){
     return position;
 }
@@ -67,18 +76,22 @@ double boat::getSail(){
     return sail;
 }
 
-void boat::moveBoat(physVector wind, physVector tide, double direction, long long timeStep){
-    position = position + tide;
+double boat::getDirection(){
+    return direction;
+}
+
+void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
+   // position = position + tide;
     //leeway, depends on boat
 
 
     //direction going
 
     //get angle of wind
-    double speed;
+    double speed=0;
     physVector north(3);
     north.setComponent(0, 1);
-    double windAngle = (wind)%north;
+    double windAngle = (wind*-1)%north;
     //compare windAngle to boatAngle
     double BoatWindAngle = abs(windAngle-direction);
 
@@ -100,13 +113,32 @@ void boat::moveBoat(physVector wind, physVector tide, double direction, long lon
         speed = (180.0-BoatWindAngle)/(180.0-95.0);
     }
     speed *= wind.getMagnitude()/60.0;
+
+    //account for rudder
+    /*
+    if(rudder < 90){
+	    direction+=(90.0-rudder);
+	    if(direction > 359.9999){
+		direction -=360.0;
+	    }
+    }
+    else{
+	    direction-=(rudder-90.0);
+	    if(direction<0.0001){
+		    direction+=360.0;
+	    }
+    }
+    */
     physVector directionVector(3);
     directionVector.setComponent(0, cos((direction/180.0)*M_PI)*speed);
-    directionVector.setComponent(2, sin((direction/180.0)*M_PI)*speed);
-    directionVector.print();
+    directionVector.setComponent(2, -1*sin((direction/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
 
     position = position + (directionVector);
-
+    /*
+    if(timeStep%100==0){
+	    position.print();
+    }
+*/
     //wave movement
     position.setComponent(1, position.getComponent(1)+sin((timeStep/180.0*3.141600))/150.0);
 }
