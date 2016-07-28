@@ -234,7 +234,18 @@ double physVector::operator&(const physVector& vect){
 }
     
 int physVector::operator|(const physVector& vect){
-    return 0;
+    //HARDCODED TO USE X AND Z
+    double val1 = this->components[2]*vect.components[0];
+    double val2 = this->components[0]*vect.components[2];
+    if(val1 > val2){
+        //vector 'this' is to the left of vector 'vect';
+        return 1;
+    }
+    else{
+        //vector 'this' is to the right of vector 'vect'
+        return -1;
+    }
+
 }
 
 void physVector::print(){

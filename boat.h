@@ -53,6 +53,7 @@ void boat::setPosition(physVector pos){
 }
 
 void boat::setRudder(double r){
+    //90 degrees is the center, less is to the left and more is to the right
     rudder = r;
     if(rudder < 20){
 	    rudder = 20;
@@ -129,14 +130,14 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     //account for rudder
     if(rudder < 90){
 	    direction-=((90.0-rudder)/600.0);
-	    if(direction > 359.9999){
-		    direction -=360.0;
-	    }
+	    if(direction<0.0001){
+		    direction+=360.0;
+        }
     }
     else{
 	    direction+=((rudder-90.0)/600.0);
-	    if(direction<0.0001){
-		    direction+=360.0;
+        if(direction > 359.9999){
+		    direction -=360.0;
 	    }
     }
     physVector directionVector(3);
@@ -144,7 +145,7 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     directionVector.setComponent(2, sin((direction/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
 
     position = position + (directionVector);
-    if(timeStep%10==0){
+    if(timeStep%50==0){
         directionVector.print();
         std::cout<<"Rudder: "<<rudder<<" Direction: "<<direction<<" Speed: "<<speed<<" BoatWingAngle: "<<BoatWindAngle<<"\n";
     }
