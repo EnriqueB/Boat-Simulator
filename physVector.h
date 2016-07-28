@@ -230,7 +230,8 @@ double physVector::operator&(const physVector& vect){
 		return 90;
 	}
 	double angle = acos(scalar / (this->magnitude * vect.magnitude));
-	return angle*180.0/M_PI;
+    angle =angle*180.0/M_PI;
+	return angle;
 }
     
 int physVector::operator|(const physVector& vect){

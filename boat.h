@@ -109,33 +109,37 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     double BoatWindAngle = abs(windAngle-direction);
 
     if (BoatWindAngle> 180.0){
-        BoatWindAngle = 360-BoatWindAngle;
+        BoatWindAngle = 360.0-BoatWindAngle;
     }
     if (BoatWindAngle <= 25.0){
         //no go zone
         speed = 0;
+     if(timeStep%50==0)   std::cout<<"A ";
     }
     else if(BoatWindAngle > 25.0 && BoatWindAngle <=85.0){
         speed = (BoatWindAngle-25.0)/(85.0-25.0);
+        if(timeStep%50==0)std::cout<<"B ";
     }
     else if(BoatWindAngle > 85.0 && BoatWindAngle <=95.0){
         speed = 0.9;
+        if(timeStep%50==0)std::cout<<"C ";
     }
 
     else if(BoatWindAngle > 95.0){
         speed = (0.7-1)/(180-95)*BoatWindAngle + (1-((0.7-1)/(180-95)*95));
+        if(timeStep%50==0)std::cout<<"D ";
     }
     speed *= wind.getMagnitude()/60.0;
 
     //account for rudder
     if(rudder < 90){
-	    direction-=((90.0-rudder)/600.0);
+	    direction-=((90.0-rudder)/200.0);
 	    if(direction<0.0001){
 		    direction+=360.0;
         }
     }
     else{
-	    direction+=((rudder-90.0)/600.0);
+	    direction+=((rudder-90.0)/200.0);
         if(direction > 359.9999){
 		    direction -=360.0;
 	    }
@@ -146,7 +150,6 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
 
     position = position + (directionVector);
     if(timeStep%50==0){
-        directionVector.print();
         std::cout<<"Rudder: "<<rudder<<" Direction: "<<direction<<" Speed: "<<speed<<" BoatWingAngle: "<<BoatWindAngle<<"\n";
     }
     //wave movement

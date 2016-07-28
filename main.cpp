@@ -46,8 +46,8 @@ void initVectors(){
         y=(double)rand()/RAND_MAX;
         y = -20+y*40;
         cout<<x<<" "<<y<<endl;
-        pos.setComponent(0, x);
-        pos.setComponent(2, y);
+        pos.setComponent(0, 0);
+        pos.setComponent(2, -20);
         pos.setComponent(1, -.1);
         boats[i].setPosition(pos);
         //boats[i].getPosition().print();
@@ -63,8 +63,8 @@ void initVectors(){
     }
 
     //generate tide
-    tide.setComponent(0,((double)rand()/RAND_MAX)*.1-0.05);
-    tide.setComponent(2,((double)rand()/RAND_MAX)*.1-0.05);
+    tide.setComponent(0,((double)rand()/RAND_MAX)*.01-0.005);
+    tide.setComponent(2,((double)rand()/RAND_MAX)*.01-0.005);
     tide.setComponent(1, 0);
 
     //generate targets
@@ -73,10 +73,16 @@ void initVectors(){
         x = -30 + x*60;
         y = (double)rand()/RAND_MAX;
         y = -30 + y*60;
-        targets[i].setComponent(0, x);
-        targets[i].setComponent(2, y);
-        targets[i].setComponent(1, 1);
+      //  targets[i].setComponent(0, x);
+      //  targets[i].setComponent(2, y);
+      //  targets[i].setComponent(1, 1);
     }
+    targets[0].setComponent(0,30.0);
+    targets[0].setComponent(2,0.0);
+    targets[0].setComponent(1, 0.5);
+    targets[1].setComponent(0,-30.0);
+    targets[1].setComponent(2,0.0);
+    targets[1].setComponent(1,0.5);
     double w[] = {0.0, 0.0, 3.0};
     physVector wind(3, w);
 
@@ -175,6 +181,14 @@ void chaseTarget(int boatIndex){
     directionVector.setComponent(0, cos((boats[boatIndex].getDirection()/180.0)*M_PI));
     directionVector.setComponent(2, sin((boats[boatIndex].getDirection()/180.0)*M_PI));
     double angleToTarget = directionVector&vectToTarget;
+    if(angleToTarget<4){
+        if(timeStep%50==0){
+        std::cout<<"Printing vector values: \n";
+        directionVector.print();
+        vectToTarget.print();
+        std::cout<<"*************\n";
+        }
+    }
     //find closest direction to target
     int direction = directionVector|vectToTarget;
     if(timeStep%50 == 0)
@@ -191,9 +205,9 @@ void chaseTarget(int boatIndex){
         //boat's direction is to the right, move towards the left
         boats[boatIndex].setRudder(boats[boatIndex].getRudder()-(0.3));
     }
-    if(vectToTarget.getMagnitude()<0.1){
+    if(vectToTarget.getMagnitude()<3.0){
         //reached target, move to next;
-        targetIndex=(++targetIndex%4);
+        targetIndex=(++targetIndex%2);
     }
 
 }
@@ -233,15 +247,17 @@ static void display(void){
 
         glColor3d(0.65,0.35,0);
         physVector pos;
-        double w[] = {0.0, 0.0, 3.0};
-        physVector wind(6, w);
+        double w[] = {0.0, 0.0, 6.0};
+        physVector wind(3, w);
 
         //draw targets
-        for(int i=0; i<4; i++){
+        for(int i=0; i<2; i++){
             glPushMatrix();
-                glColor3d(1, 0, 0);
                 glTranslated(targets[i].getComponent(0), targets[i].getComponent(1), targets[i].getComponent(2));
-                glutSolidSphere(0.5, 10, 10);
+                glColor3d(0, 0, 0);
+                glutWireSphere(1, 10, 10);
+                glColor3d(1, 0, 0);
+                glutSolidSphere(1, 10, 10);
             glPopMatrix();
         }
 
