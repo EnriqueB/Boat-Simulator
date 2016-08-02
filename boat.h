@@ -30,7 +30,7 @@ class boat{
         double getDirection();
 
         void moveBoat(physVector wind, physVector tide, long long timeStep);
-        double bestAngle(physVector wind, double startAngle);
+        double bestAngle(physVector wind, double startAngle, int tackLimit, physVector target);
 };
 
 boat::boat(){
@@ -94,7 +94,7 @@ double boat::getDirection(){
     return direction;
 }
 
-double boat::bestAngle(physVector wind, double startAngle){
+double boat::bestAngle(physVector wind, double startAngle, int tackLimit, physVector target){
     /*
     TODO: Change this function so that it returns
     the best angle that after x timeSteps will
@@ -103,7 +103,7 @@ double boat::bestAngle(physVector wind, double startAngle){
     if(startAngle < 0){
         startAngle = 360 + startAngle;
     }
-    double bestSpeed = 0;
+    double bestMagnitude = 1000000000000;
     double bestAng = -1;
     for(int i = (int)startAngle; i<(int)startAngle+40; i++){
         double dir = (double)(i%360);
@@ -132,8 +132,17 @@ double boat::bestAngle(physVector wind, double startAngle){
             speed = (0.7-1)/(180-95)*BoatWindAngle + (1-((0.7-1)/(180-95)*95));
 
         }
-        if(speed>bestSpeed){
-            bestSpeed = speed;
+        speed *= wind.getMagnitude()/60.0;
+        physVector directionVector(3);
+        directionVector.setComponent(0, cos((direction/180.0)*M_PI)*speed);
+        directionVector.setComponent(2, sin((direction/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
+        physVector pos = position;
+        pos = pos + directionVector*((double)tackLimit);
+        physVector vectToTarget = target-pos;
+        double magnitude = vectToTarget.getMagnitude();
+
+        if(magnitude<bestMagnitude){
+            bestMagnitude = magnitude;
             bestAng = dir;
         }
     }

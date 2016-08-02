@@ -223,12 +223,12 @@ void tackManager(int boatIndex){
         if(direction==-1){
             //boat's direction is to the left
             //check all angles from originalHeading -30 to originalHeading
-            tackAngle = boats[boatIndex].bestAngle(wind, originalHeading);
+            tackAngle = boats[boatIndex].bestAngle(wind, originalHeading, tackLimit, targets[targetIndex]);
             tackStatus = 1;
             if(tackAngle == -1){
-                tackAngle = boats[boatIndex].bestAngle(wind, originalHeading-40.0);
                 tackStatus = 2;
                 tackLimit = 200;
+                tackAngle = boats[boatIndex].bestAngle(wind, originalHeading-40.0, tackLimit, targets[targetIndex]);
                 if(tackAngle == -1){
                     tackAngle = ((int)(originalHeading +50.0)%360);
                 }
@@ -236,12 +236,12 @@ void tackManager(int boatIndex){
 
         }
         else{
-            tackAngle = boats[boatIndex].bestAngle(wind, originalHeading-40.0);
+            tackAngle = boats[boatIndex].bestAngle(wind, originalHeading-40.0, tackLimit, targets[targetIndex]);
             tackStatus = 2;
             if(tackAngle == -1){
-                tackAngle = boats[boatIndex].bestAngle(wind, originalHeading);
                 tackStatus = 1;
                 tackLimit = 200;
+                tackAngle = boats[boatIndex].bestAngle(wind, originalHeading, tackLimit, targets[targetIndex]);
                 if(tackAngle == -1){
                     int temp = (int)(originalHeading- 50);
                     if(temp< 0){
