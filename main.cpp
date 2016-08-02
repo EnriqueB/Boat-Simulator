@@ -26,13 +26,18 @@ float angle = 0.0f;
 float acceleration;
 float accelerationVal;
 
-////int dummy = 5;
-
 boat boats[10];
 physVector tide(3);
 physVector targets [4];
 int targetIndex;
 long long timeStep;
+long long tackTimer=0;
+double w[] = {0.0, 0.0, 6.0};
+physVector wind(3, w);
+int tackStatus =0;
+double originalHeading;
+double tackAngle = 0;
+int tackLimit = 350;
 
 void initVectors(){
     srand(time(NULL));
@@ -47,7 +52,7 @@ void initVectors(){
         y = -20+y*40;
         cout<<x<<" "<<y<<endl;
         pos.setComponent(0, 0);
-        pos.setComponent(2, -20);
+        pos.setComponent(2, 30.0);
         pos.setComponent(1, -.1);
         boats[i].setPosition(pos);
         //boats[i].getPosition().print();
@@ -59,7 +64,7 @@ void initVectors(){
         ang = (double)rand()/RAND_MAX;
         ang*=360.0;
         cout<<i<<": "<<ang<<endl;
-	boats[i].setDirection(ang);
+	boats[i].setDirection(270.0);
     }
 
     //generate tide
@@ -77,14 +82,12 @@ void initVectors(){
       //  targets[i].setComponent(2, y);
       //  targets[i].setComponent(1, 1);
     }
-    targets[0].setComponent(0,30.0);
-    targets[0].setComponent(2,0.0);
+    targets[0].setComponent(0,0.0);
+    targets[0].setComponent(2,-50.0);
     targets[0].setComponent(1, 0.5);
     targets[1].setComponent(0,-30.0);
     targets[1].setComponent(2,0.0);
     targets[1].setComponent(1,0.5);
-    double w[] = {0.0, 0.0, 3.0};
-    physVector wind(3, w);
 
     double n[] = {1.0, 0.0, 0.0};
     physVector north(3, n);
@@ -181,14 +184,6 @@ void chaseTarget(int boatIndex){
     directionVector.setComponent(0, cos((boats[boatIndex].getDirection()/180.0)*M_PI));
     directionVector.setComponent(2, sin((boats[boatIndex].getDirection()/180.0)*M_PI));
     double angleToTarget = directionVector&vectToTarget;
-    if(angleToTarget<4){
-        if(timeStep%50==0){
-        std::cout<<"Printing vector values: \n";
-        directionVector.print();
-        vectToTarget.print();
-        std::cout<<"*************\n";
-        }
-    }
     //find closest direction to target
     int direction = directionVector|vectToTarget;
     if(timeStep%50 == 0)
@@ -205,10 +200,141 @@ void chaseTarget(int boatIndex){
         //boat's direction is to the right, move towards the left
         boats[boatIndex].setRudder(boats[boatIndex].getRudder()-(0.3));
     }
+
+}
+
+void tackManager(int boatIndex){
+    /*
+    Check what side to start tacking (closest one to boat's direction)
+    From there, check what angle would give the best speed
+    Follow that until tack limit, repeat
+    */
+    if(tackStatus == 0){
+        //obtain side
+        cout<<"Begin tack\n";
+        physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
+        physVector directionVector(3);
+        directionVector.setComponent(0, cos((boats[boatIndex].getDirection()/180.0)*M_PI));
+        directionVector.setComponent(2, sin((boats[boatIndex].getDirection()/180.0)*M_PI));
+
+        //find closest direction to target
+        int direction = directionVector|vectToTarget;
+
+        if(direction==-1){
+            //boat's direction is to the left
+            //check all angles from originalHeading -30 to originalHeading
+            tackAngle = boats[boatIndex].bestAngle(wind, originalHeading);
+            tackStatus = 1;
+            if(tackAngle == -1){
+                tackAngle = boats[boatIndex].bestAngle(wind, originalHeading-40.0);
+                tackStatus = 2;
+                tackLimit = 200;
+                if(tackAngle == -1){
+                    tackAngle = ((int)(originalHeading +50.0)%360);
+                }
+            }
+
+        }
+        else{
+            tackAngle = boats[boatIndex].bestAngle(wind, originalHeading-40.0);
+            tackStatus = 2;
+            if(tackAngle == -1){
+                tackAngle = boats[boatIndex].bestAngle(wind, originalHeading);
+                tackStatus = 1;
+                tackLimit = 200;
+                if(tackAngle == -1){
+                    int temp = (int)(originalHeading- 50);
+                    if(temp< 0){
+                        temp = 360 + temp;
+                    }
+                    tackAngle = temp;
+                }
+            }
+        }
+        cout<<"TackAngle: "<<tackAngle<<endl;
+
+    }
+    if(tackTimer > tackLimit){
+        cout<<"Finished tack\n";
+        tackLimit = 700;
+        tackTimer = 0;
+        //change tack
+        tackStatus = 0;
+    }
+    if(tackStatus ==1){
+        //turn until
+        if(abs(tackAngle - boats[boatIndex].getDirection()) >= 1.0){
+            boats[boatIndex].setRudder(boats[boatIndex].getRudder()+0.5);
+        }
+        else{
+            //keep tack for a while
+            boats[boatIndex].setRudder(90.0);
+            tackTimer++;
+        }
+    }
+    else if(tackStatus == 2){
+        if(abs(tackAngle- boats[boatIndex].getDirection()) >= 1.0){
+            boats[boatIndex].setRudder(boats[boatIndex].getRudder()-0.5);
+        }
+        else{
+            boats[boatIndex].setRudder(90.0);
+            tackTimer++;
+        }
+    }
+}
+
+void ruleSet(int boatIndex){
+    /*
+     * 1.- Understand the situation:
+     *          Distance to target
+     *          Angle to target
+     *          Direction of the wind
+     * 2.- Depending on direction of the wind:
+     *          If the desired direction is inside
+     *              the no-go zone, then the boat
+     *              must tack to reach its destination
+     *          If the desired direction is not inside
+     *              the no-go zone, then a direct
+     *              approach can be used.
+     */
+    physVector north(3);
+    north.setComponent(0, 1);
+
+    //obtain true wind angle
+    double trueWindAngle = (wind*-1)%north;
+    physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
+
     if(vectToTarget.getMagnitude()<3.0){
         //reached target, move to next;
         targetIndex=(++targetIndex%2);
     }
+
+
+    //obtain vectToTarget angle
+    double trueTargetAngle = (vectToTarget)%north;
+
+    double angleDifference = abs(trueWindAngle-trueTargetAngle);
+
+    if(angleDifference>180.0){
+        angleDifference = 360-angleDifference;
+    }
+    if(timeStep%50==0){
+        cout<<"AngleDifference: "<<angleDifference<<"  ";
+    }
+
+    if(angleDifference <=35.0){
+        if(tackStatus == 0){
+            originalHeading = trueTargetAngle;
+        }
+        tackManager(boatIndex);
+    }
+    else{
+        tackStatus = 0;
+        tackTimer = 0;
+        //boat can sail towards target
+        chaseTarget(boatIndex);
+    }
+
 
 }
 
@@ -247,8 +373,6 @@ static void display(void){
 
         glColor3d(0.65,0.35,0);
         physVector pos;
-        double w[] = {0.0, 0.0, 6.0};
-        physVector wind(3, w);
 
         //draw targets
         for(int i=0; i<2; i++){
@@ -268,7 +392,7 @@ static void display(void){
     //        if(pos[i].getComponent(1)>3) pos[i].setComponent(1, pos[i].getComponent(1)-6);
 
             //move and draw boats
-            chaseTarget(i);
+            ruleSet(i);
             boats[i].moveBoat(wind, tide, timeStep);
             drawBoat(i);
         }

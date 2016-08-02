@@ -27,9 +27,10 @@ class boat{
         physVector getPosition();
         double getRudder();
         double getSail();
-	double getDirection();
+        double getDirection();
 
         void moveBoat(physVector wind, physVector tide, long long timeStep);
+        double bestAngle(physVector wind, double startAngle);
 };
 
 boat::boat(){
@@ -93,6 +94,53 @@ double boat::getDirection(){
     return direction;
 }
 
+double boat::bestAngle(physVector wind, double startAngle){
+    /*
+    TODO: Change this function so that it returns
+    the best angle that after x timeSteps will
+    minimize the distance to target
+    */
+    if(startAngle < 0){
+        startAngle = 360 + startAngle;
+    }
+    double bestSpeed = 0;
+    double bestAng = -1;
+    for(int i = (int)startAngle; i<(int)startAngle+40; i++){
+        double dir = (double)(i%360);
+        double speed=0;
+        physVector north(3);
+        north.setComponent(0, 1);
+        double windAngle = (wind*-1.0)%north;
+        //compare windAngle to boatAngle
+        double BoatWindAngle = abs(windAngle-dir);
+
+        if (BoatWindAngle> 180.0){
+            BoatWindAngle = 360.0-BoatWindAngle;
+        }
+        if (BoatWindAngle <= 20.0){
+            //no go zone
+            speed = 0;
+        }
+        else if(BoatWindAngle > 20.0 && BoatWindAngle <=85.0){
+            speed = (BoatWindAngle-20.0)/(85.0-20.0);
+        }
+        else if(BoatWindAngle > 85.0 && BoatWindAngle <=95.0){
+            speed = 0.9;
+        }
+
+        else if(BoatWindAngle > 95.0){
+            speed = (0.7-1)/(180-95)*BoatWindAngle + (1-((0.7-1)/(180-95)*95));
+
+        }
+        if(speed>bestSpeed){
+            bestSpeed = speed;
+            bestAng = dir;
+        }
+    }
+    return bestAng;
+
+}
+
 void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     position = position + tide;
     //leeway, depends on boat
@@ -111,35 +159,31 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     if (BoatWindAngle> 180.0){
         BoatWindAngle = 360.0-BoatWindAngle;
     }
-    if (BoatWindAngle <= 25.0){
+    if (BoatWindAngle <= 20.0){
         //no go zone
         speed = 0;
-     if(timeStep%50==0)   std::cout<<"A ";
     }
-    else if(BoatWindAngle > 25.0 && BoatWindAngle <=85.0){
-        speed = (BoatWindAngle-25.0)/(85.0-25.0);
-        if(timeStep%50==0)std::cout<<"B ";
+    else if(BoatWindAngle > 20.0 && BoatWindAngle <=85.0){
+        speed = (BoatWindAngle-20.0)/(85.0-20.0);
     }
     else if(BoatWindAngle > 85.0 && BoatWindAngle <=95.0){
         speed = 0.9;
-        if(timeStep%50==0)std::cout<<"C ";
     }
 
     else if(BoatWindAngle > 95.0){
         speed = (0.7-1)/(180-95)*BoatWindAngle + (1-((0.7-1)/(180-95)*95));
-        if(timeStep%50==0)std::cout<<"D ";
     }
     speed *= wind.getMagnitude()/60.0;
 
     //account for rudder
     if(rudder < 90){
-	    direction-=((90.0-rudder)/200.0);
+	    direction-=((90.0-rudder)/150.0);
 	    if(direction<0.0001){
 		    direction+=360.0;
         }
     }
     else{
-	    direction+=((rudder-90.0)/200.0);
+	    direction+=((rudder-90.0)/150.0);
         if(direction > 359.9999){
 		    direction -=360.0;
 	    }
