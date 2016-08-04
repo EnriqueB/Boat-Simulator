@@ -105,7 +105,7 @@ double boat::bestAngle(physVector wind, double startAngle, int tackLimit, physVe
     }
     double bestMagnitude = 1000000000000;
     double bestAng = -1;
-    for(int i = (int)startAngle; i<(int)startAngle+40; i++){
+    for(int i = (int)startAngle; i<(int)startAngle+45; i++){
         double dir = (double)(i%360);
         double speed=0;
         physVector north(3);
@@ -186,13 +186,13 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
 
     //account for rudder
     if(rudder < 90){
-	    direction-=((90.0-rudder)/150.0);
+	    direction-=((90.0-rudder)/80.0);
 	    if(direction<0.0001){
 		    direction+=360.0;
         }
     }
     else{
-	    direction+=((rudder-90.0)/150.0);
+	    direction+=((rudder-90.0)/80.0);
         if(direction > 359.9999){
 		    direction -=360.0;
 	    }
