@@ -3,7 +3,10 @@
 
 #include "physVector.h"
 #include "battery.h"
+#include <string.h>
 #include <iostream>
+
+#define FPS 60.0
 
 class boat{
 
@@ -13,15 +16,17 @@ class boat{
         double sail;
     	battery bat;
 	    double direction;
+        double angle_sailingPoints[3];
+        double speed_sailingPoints[3];
 
     public:
        boat();
-        boat(double x, double y, double dir);
+        boat(double x, double y, double dir, double angles[]);
         //setters
         void setPosition(physVector pos);
         void setRudder(double r);
         void setSail(double s);
-	void setDirection(double a);
+	    void setDirection(double a);
 
         //getters
         physVector getPosition();
@@ -38,15 +43,22 @@ boat::boat(){
     rudder = 90;
     sail = 0;
     direction = 0;
+    memset(angle_sailingPoints, 0, sizeof(angle_sailingPoints));
+    memset(speed_sailingPoints, 0, sizeof(speed_sailingPoints));
+
 }
 
-boat::boat(double x, double y, double dir){
+boat::boat(double x, double y, double dir, double angles[]){
     position.setComponent(0, x);
     position.setComponent(2, y);
     position.setComponent(1, 0);
     rudder = 90;
     sail = 0;
     direction = dir;
+    angle_sailingPoints[0] = angles[0];
+    angle_sailingPoints[1] = angles[1];
+    angle_sailingPoints[2] = angles[2];
+    memset(speed_sailingPoints, 0, sizeof(speed_sailingPoints));
 }
 
 void boat::setPosition(physVector pos){
@@ -114,23 +126,23 @@ double boat::bestAngle(physVector wind, double startAngle, int tackLimit, physVe
         //compare windAngle to boatAngle
         double BoatWindAngle = abs(windAngle-dir);
 
-        if (BoatWindAngle> 180.0){
-            BoatWindAngle = 360.0-BoatWindAngle;
-        }
-        if (BoatWindAngle <= 20.0){
+        if (BoatWindAngle <= angle_sailingPoints[0]){
             //no go zone
             speed = 0;
         }
-        else if(BoatWindAngle > 20.0 && BoatWindAngle <=85.0){
-            speed = (BoatWindAngle-20.0)/(85.0-20.0);
+        else if(BoatWindAngle > angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
+            double m = (0.95-0.3)/(angle_sailingPoints[1]-angle_sailingPoints[0]);
+            double b = 0.3 - m*angle_sailingPoints[0];
+            speed = m* BoatWindAngle + b;
         }
-        else if(BoatWindAngle > 85.0 && BoatWindAngle <=95.0){
-            speed = 0.9;
+        else if(BoatWindAngle > angle_sailingPoints[1] && BoatWindAngle <=angle_sailingPoints[2]){
+            speed = 0.95;
         }
 
-        else if(BoatWindAngle > 95.0){
-            speed = (0.7-1)/(180-95)*BoatWindAngle + (1-((0.7-1)/(180-95)*95));
-
+        else if(BoatWindAngle > angle_sailingPoints[2]){
+            double m = (0.7-0.95)/(180-angle_sailingPoints[2]);
+            double b = 0.95 - m*angle_sailingPoints[2];
+            speed = m*BoatWindAngle+b;
         }
         speed *= wind.getMagnitude()/60.0;
         physVector directionVector(3);
@@ -168,21 +180,27 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     if (BoatWindAngle> 180.0){
         BoatWindAngle = 360.0-BoatWindAngle;
     }
-    if (BoatWindAngle <= 20.0){
+    if (BoatWindAngle <= angle_sailingPoints[0]){
         //no go zone
-        speed = 0;
+        speed = 0.15;
     }
-    else if(BoatWindAngle > 20.0 && BoatWindAngle <=85.0){
-        speed = (BoatWindAngle-20.0)/(85.0-20.0);
+    else if(BoatWindAngle > angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
+        double m = (0.95-0.2)/(angle_sailingPoints[1]-angle_sailingPoints[0]);
+        double b = 0.2 - m*angle_sailingPoints[0];
+        speed = m* BoatWindAngle + b;
     }
-    else if(BoatWindAngle > 85.0 && BoatWindAngle <=95.0){
-        speed = 0.9;
+    else if(BoatWindAngle > angle_sailingPoints[1] && BoatWindAngle <=angle_sailingPoints[2]){
+        speed = 0.95;
     }
 
-    else if(BoatWindAngle > 95.0){
-        speed = (0.7-1)/(180-95)*BoatWindAngle + (1-((0.7-1)/(180-95)*95));
+    else if(BoatWindAngle > angle_sailingPoints[2]){
+        //double a1 = 0.7-0.95;
+        //double a2 = 180-angle_sailingPoints[2];
+        double m = (0.7-0.95)/(180.0-angle_sailingPoints[2]);
+        double b = 0.95 - m*angle_sailingPoints[2];
+        speed = m*BoatWindAngle+b;
     }
-    speed *= wind.getMagnitude()/60.0;
+    speed *= wind.getMagnitude()/FPS;
 
     //account for rudder
     if(rudder < 90){
@@ -202,7 +220,7 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     directionVector.setComponent(2, sin((direction/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
 
     position = position + (directionVector);
-    if(timeStep%50==0){
+    if(timeStep%150==0){
         std::cout<<"Rudder: "<<rudder<<" Direction: "<<direction<<" Speed: "<<speed<<" BoatWingAngle: "<<BoatWindAngle<<"\n";
     }
     //wave movement
