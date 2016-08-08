@@ -33,17 +33,11 @@ physVector tide(3);
 physVector targets [4];
 physVector north(3);
 
-int targetIndex;
 long long timeStep;
 long long lastLoop = 0;
-long long tackTimer=0;
-double w[] = {6.0, 0.0, 0.0};
+double w[] = {0.0, 0.0, 6.0};
 physVector wind(3, w);
-int tackStatus =0;
 double originalHeading;
-double tackAngle = 0;
-int tackLimit = 300;
-int loopCount = 0;
 
 
 void initVectors(){
@@ -52,9 +46,10 @@ void initVectors(){
     physVector pos;
 
     //generate random original positions
-    double sailingPoints[] = {20.0,  85.0, 95.0};
+    double sailingPoints[] = {10.0,  85.0, 95.0};
+    double speedPoints[] = {0.3, 0.95, 0.8};
     double x, y, ang;
-    for(int i=0; i<10; i++){
+    for(int i=0; i<4; i++){
         x= (double)rand() / RAND_MAX;               //HARDCODED
         x = -20 + x*40;
         y=(double)rand()/RAND_MAX;
@@ -64,8 +59,9 @@ void initVectors(){
         ang = (double)rand()/RAND_MAX;
         ang*=360.0;
 
-        boat b(0, 10, ang, sailingPoints);
+        boat b(0, 10, 270, sailingPoints, speedPoints);
         boats.push_back(b);
+        sailingPoints[0] = sailingPoints[0]+(double)i*5.0;
     }
 
     //generate tide
@@ -127,9 +123,9 @@ void changeSize(int w, int h){
 }
 
     
-void drawBoat(int i){
-    physVector pos = boats[i].getPosition();
-    double ang = 360-boats[i].getDirection();
+void drawBoat(int boatIndex){
+    physVector pos = boats[boatIndex].getPosition();
+    double ang = 360-boats[boatIndex].getDirection();
     glPushMatrix();
         //glRotated(angle, 0, 1, 0);
         //hull
@@ -139,7 +135,7 @@ void drawBoat(int i){
             glScalef(1.2, .8, 0.5);
             glColor3d(0, 0, 0);
             glutWireCube(4);
-            glColor3d(0.55,0.35,0);
+            glColor3d(0.55,0.35, 0);
             glutSolidCube(4);
         glPopMatrix();
 
@@ -161,7 +157,7 @@ void drawBoat(int i){
             glScalef(0.3, 0.9, 1);
             glColor3d(0, 0, 0);
             glutWireCube(0.8);
-            glColor3d(1,1,1);
+            glColor3d(1-(double)boatIndex*0.22,1-(double)boatIndex*0.15,1-(double)boatIndex*0.2);
             glutSolidCube(0.8);
         glPopMatrix();
 
@@ -181,7 +177,7 @@ void drawBoat(int i){
 
 
 void chaseTarget(int boatIndex){
-
+    int targetIndex = boats[boatIndex].getTargetIndex();
     //move towards target
     //find the angle difference to the target
     physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
@@ -220,9 +216,16 @@ void baseTacking(int boatIndex){
      * 2.- Pick a random side and commit to a tack
      * 3.- Evaluate after tack, if target is still upwind, tack to the other side
      */
+    int targetIndex = boats[boatIndex].getTargetIndex();
+    int tackStatus = boats[boatIndex].getTackStatus();
+    double tackAngle = boats[boatIndex].getTackAngle();
+    int tackTimer = boats[boatIndex].getTackTimer();
+    int tackLimit = boats[boatIndex].getTackLimit();
+
     if(timeStep%300==0){
         cout<<"Tacking stat: "<<tackStatus<<" # ";
     }
+
     physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
     physVector directionVector(3);
     directionVector.setComponent(0, cos((boats[boatIndex].getDirection()/180.0)*M_PI));
@@ -248,7 +251,7 @@ void baseTacking(int boatIndex){
                 }
             }
             else{
-                tackAngle = boats[boatIndex].getSailingPoint(0) - trueWindAngle - 5.0;
+                tackAngle = trueWindAngle - boats[boatIndex].getSailingPoint(0) - 5.0;
                 if(tackAngle<0.0){
                     tackAngle = 360+tackAngle;
                 }
@@ -303,7 +306,7 @@ void baseTacking(int boatIndex){
     if(tackStatus ==1){
         //turn until facing direction
         if(abs(tackAngle - boats[boatIndex].getDirection()) >= 1.0){
-            boats[boatIndex].setSail(0.2); //reduce speed while turning
+            boats[boatIndex].setSail(0.4); //reduce speed while turning
             boats[boatIndex].setRudder(boats[boatIndex].getRudder()+0.5);
         }
         else{
@@ -315,7 +318,7 @@ void baseTacking(int boatIndex){
     }
     else if(tackStatus == 2){
         if(abs(tackAngle- boats[boatIndex].getDirection()) >= 1.0){
-            boats[boatIndex].setSail(0.2);  //reduce speed while turning
+            boats[boatIndex].setSail(0.4);  //reduce speed while turning
             boats[boatIndex].setRudder(boats[boatIndex].getRudder()-0.5);
         }
         else{
@@ -324,6 +327,10 @@ void baseTacking(int boatIndex){
             tackTimer++;
         }
     }
+    boats[boatIndex].setTackAngle(tackAngle);
+    boats[boatIndex].setTackTimer(tackTimer);
+    boats[boatIndex].setTackLimit(tackLimit);
+    boats[boatIndex].setTackStatus(tackStatus);
 }
 
 void tackManager(int boatIndex){
@@ -332,6 +339,13 @@ void tackManager(int boatIndex){
     From there, check what angle would give the best speed
     Follow that until tack limit, repeat
     */
+    int targetIndex = boats[boatIndex].getTargetIndex();
+    int tackStatus = boats[boatIndex].getTackStatus();
+    double tackAngle = boats[boatIndex].getTackAngle();
+    int tackTimer = boats[boatIndex].getTackTimer();
+    int tackLimit = boats[boatIndex].getTackLimit();
+
+
     if(tackStatus == 0){
         //obtain side
         cout<<"Begin tack\n";
@@ -412,6 +426,11 @@ void tackManager(int boatIndex){
             tackTimer++;
         }
     }
+    boats[boatIndex].setTackAngle(tackAngle);
+    boats[boatIndex].setTackTimer(tackTimer);
+    boats[boatIndex].setTackLimit(tackLimit);
+    boats[boatIndex].setTackStatus(tackStatus);
+
 }
 
 void ruleSet(int boatIndex){
@@ -428,6 +447,10 @@ void ruleSet(int boatIndex){
      *              the no-go zone, then a direct
      *              approach can be used.
      */
+    int targetIndex = boats[boatIndex].getTargetIndex();
+    int tackStatus = boats[boatIndex].getTackStatus();
+    int tackTimer = boats[boatIndex].getTackTimer();
+    int tackLimit = boats[boatIndex].getTackLimit();
     //obtain true wind angle
     double trueWindAngle = (wind*-1)%north;
     physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
@@ -435,13 +458,17 @@ void ruleSet(int boatIndex){
     if(vectToTarget.getMagnitude()<3.0){
         //reached target, move to next;
         if(targetIndex==0){
+            int loopCount = boats[boatIndex].getLoopCount();
             cout<<"************************\n";
-            cout<<"Loop count: "<<loopCount<<" In: "<<(double)(timeStep-lastLoop)/FPS<<" seconds\n";
+            cout<<"Boat: "<<boatIndex<<" ";
+            cout<<"Loop count: "<<loopCount;
+            cout<<" In: "<<(double)(timeStep-boats[boatIndex].getLastLoop())/FPS<<" seconds\n";
             cout<<"************************\n";
-            loopCount++;
-            lastLoop=timeStep;
+            boats[boatIndex].completedLoop();
+            boats[boatIndex].setLastLoop(timeStep);
         }
         targetIndex=(++targetIndex%2);
+        boats[boatIndex].setTargetIndex(targetIndex);
     }
 
     //obtain vectToTarget angle
@@ -462,6 +489,9 @@ void ruleSet(int boatIndex){
         tackLimit = 300;
         //boat can sail towards target
         chaseTarget(boatIndex);
+        boats[boatIndex].setTackStatus(tackStatus);
+        boats[boatIndex].setTackTimer(tackTimer);
+        boats[boatIndex].setTackLimit(tackLimit);
     }
     else{
         //If the angle towards the wind is lower than 30, tack
@@ -510,7 +540,7 @@ static void display(void){
         physVector pos;
 
         //draw targets
-        for(int i=0; i<4; i++){
+        for(int i=0; i<2; i++){
             glPushMatrix();
                 glTranslated(targets[i].getComponent(0), targets[i].getComponent(1), targets[i].getComponent(2));
                 glColor3d(0, 0, 0);
@@ -520,15 +550,18 @@ static void display(void){
             glPopMatrix();
         }
 
-        for(int i =0; i<1; i++){
+        for(int i =0; i<4; i++){
             //move and draw boats
+            if(timeStep%300 == 0){
+                cout<<"Boat: "<<i<<" ";
+            }
             ruleSet(i);
             boats[i].moveBoat(wind, tide, timeStep);
             drawBoat(i);
         }
         glutSwapBuffers();
         timeStep++;
-	start = chrono::steady_clock::now();
+	    start = chrono::steady_clock::now();
     }
 }
 
