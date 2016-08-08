@@ -1,0 +1,25 @@
+Sistema de algoritmos geneticos:
+
+Utiliza la funcion de tacking especializada.
+Lo que hace es:
+	Siempre se movera en tacks.
+	Cada que termine un tack analiza la posicion en la que esta
+	Evalua y regresa el mejor angulo y tackTime que minimice la distancia al target.  
+		Tomara en cuenta la marea y leeway
+
+El sistema de algoritmo genetico trabjara en los siguientes parametros:
+	Maximo angulo de tack a evaluar
+	Angle step (angulos a probar)
+	Minimo y maximo tack time
+	Tack step (cada cuantos steps se hace una prueba)
+	mas cosas???
+
+
+CONSIDERAR:
+	Revisar todos las posibilidades consume tiempo y recursos.
+		Son muchas cosas a considerer, tan solo angulo + tackTime ya es cuadratico,
+		(para cada angulo, revisar x cantidad de tackTimes).
+	El algoritmo genetico nos dara un set de parametros que, en teoria, encontraran:
+		Un buen angulo y un buen tackTime para distintas configuraciones de bote
+		que minimiza el tiempo para llegar al target y tambien, tal vez, las operaciones
+		necesarias
