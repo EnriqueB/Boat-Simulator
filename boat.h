@@ -60,7 +60,7 @@ class boat{
         void completedLoop() { loopCount++; }
 
         void moveBoat(physVector wind, physVector tide, long long timeStep);
-        double bestAngle(physVector wind, physVector tide, double minAngle, double maxAngle,
+        double bestAngle(physVector wind, physVector tide, int minAngle, int maxAngle,
                 int angleStep, int minTack, int maxTack, int tackStep, physVector target, 
                 int &iterations, int &bestTack);
 };
@@ -134,7 +134,7 @@ void boat::setTackAngle(double t){
     }
 }
 
-double boat::bestAngle(physVector wind, physVector tide, double minAngle, double maxAngle,
+double boat::bestAngle(physVector wind, physVector tide, int minAngle, int maxAngle,
                 int angleStep, int minTack, int maxTack, int tackStep, physVector target, 
                 int &iterations, int &bestTack){
     /*

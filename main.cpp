@@ -11,6 +11,11 @@
 
 #define FPS 60.0
 
+#define POPULATION_SIZE 100;
+#define TOURNAMENT_SIZE = 5;
+#define GENERATIONS 100;
+#define XOVER_CHANCE 0.9;
+
 using namespace std;
 
 //Clock used for enforcing FPS
@@ -39,9 +44,78 @@ double w[] = {0.0, 0.0, 9.0};
 physVector wind(3, w);
 double originalHeading;
 
+struct INDIVIDUAL{
+    double fitness;
+    /*
+     * 0: minAngle
+     * 1: maxAngle
+     * 2: angleStep
+     * 3: minTack
+     * 4: maxTack
+     * 5: tackStep
+     */
+    double parameters[6];
+
+    INDIVIDUAL(){
+        srand(time(NULL));
+        fitness = 0;
+        parameters[0] = rand()%360;
+        parameters[1] = rand()%360;
+        parameters[2] = rand()%50 + 1;
+        parameters[3] = rand()%100 + 1;
+        parameters[4] = rand()%3000 + 1;
+        parameters[5] = rand()%100 + 1;
+
+        while((parameters[3] > parameters[4]) || (parameters[3] == parameters[4])){
+            parameters[3] = rand()%100 +1;
+            parameters[4] = rand()%3000 +1;
+        }
+    }
+}individuals[POPULATION_SIZE];
+
+int tournament(bool type){
+    //Tournament selection
+    //type = true for normal, false for negative tournament
+	double fitness = (double)INT32_MAX;
+    if(!type)fitness = 0;
+	int index = 0;
+	for (int i = 0; i < TOURNAMENT_SIZE; i++) {
+		int ind = rand() % POPULATION_SIZE;
+        //check tournament type
+		if ((individuals[ind].fitness< fitness)==type) {
+			fitness = individuals[ind].fitness;
+			index = ind;
+		}
+	}
+	return index;
+}
+
+void generateOffspring(){
+    double random = ((double)rand() / RAND_MAX);
+    INDIVIDUAL ind;
+    
+    if(random < crossOverRate){ //crossover
+        //pick two parents
+        int parent1 = tournament(true);
+        int parent2 = tournament(true);
+        
+        //TODO do xover
+
+        int index = tournament(false);
+        individuals[index] = ind;
+    }
+    else{                       //mutation
+        //pick one parent
+        int index = tournament(true);
+
+        //TODO do mutation
+
+        index = tournament(false);
+        individuals[index] = ind;
+    }
+}
 
 void initVectors(){
-    srand(time(NULL));
     timeStep=0;
     physVector pos;
 
@@ -352,7 +426,7 @@ void tackManager(int boatIndex){
         cout<<"Begin tack\n";
         int iterations = 0;
         int bestTack = 0;
-        tackAngle = boats[boatIndex].bestAngle(wind, tide, 0, 359, 1, 10, 3000, 5, targets[targetIndex], iterations, bestTack);
+        tackAngle = boats[boatIndex].bestAngle(wind, tide, 0, 359, 5, 10, 3000, 20, targets[targetIndex], iterations, bestTack);
         tackLimit = bestTack;
         cout<<"TackAngle: "<<tackAngle<<" Iterations: "<<iterations<<" BestTack: "<<bestTack<<endl;
         tackStatus = 1;
