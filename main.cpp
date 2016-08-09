@@ -35,7 +35,7 @@ physVector north(3);
 
 long long timeStep;
 long long lastLoop = 0;
-double w[] = {0.0, 0.0, 6.0};
+double w[] = {0.0, 0.0, 9.0};
 physVector wind(3, w);
 double originalHeading;
 
@@ -61,7 +61,7 @@ void initVectors(){
 
         boat b(0, 10, 270, sailingPoints, speedPoints);
         boats.push_back(b);
-        sailingPoints[0] = sailingPoints[0]+(double)i*5.0;
+        sailingPoints[0] = sailingPoints[0];//+(double)i*5.0;
     }
 
     //generate tide
@@ -157,7 +157,8 @@ void drawBoat(int boatIndex){
             glScalef(0.3, 0.9, 1);
             glColor3d(0, 0, 0);
             glutWireCube(0.8);
-            glColor3d(1-(double)boatIndex*0.22,1-(double)boatIndex*0.15,1-(double)boatIndex*0.2);
+            if(boatIndex == 0) glColor3d(1,1,1);
+            else glColor3d(0,0,0);
             glutSolidCube(0.8);
         glPopMatrix();
 
@@ -306,7 +307,7 @@ void baseTacking(int boatIndex){
     if(tackStatus ==1){
         //turn until facing direction
         if(abs(tackAngle - boats[boatIndex].getDirection()) >= 1.0){
-            boats[boatIndex].setSail(0.4); //reduce speed while turning
+            boats[boatIndex].setSail(0.3); //reduce speed while turning
             boats[boatIndex].setRudder(boats[boatIndex].getRudder()+0.5);
         }
         else{
@@ -318,7 +319,7 @@ void baseTacking(int boatIndex){
     }
     else if(tackStatus == 2){
         if(abs(tackAngle- boats[boatIndex].getDirection()) >= 1.0){
-            boats[boatIndex].setSail(0.4);  //reduce speed while turning
+            boats[boatIndex].setSail(0.3);  //reduce speed while turning
             boats[boatIndex].setRudder(boats[boatIndex].getRudder()-0.5);
         }
         else{
@@ -349,79 +350,46 @@ void tackManager(int boatIndex){
     if(tackStatus == 0){
         //obtain side
         cout<<"Begin tack\n";
-        physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
-        physVector directionVector(3);
-        directionVector.setComponent(0, cos((boats[boatIndex].getDirection()/180.0)*M_PI));
-        directionVector.setComponent(2, sin((boats[boatIndex].getDirection()/180.0)*M_PI));
-
-        //find closest direction to target
-        int direction = directionVector|vectToTarget;
-
-        if(direction==-1){
-            //boat's direction is to the left
-            //check all angles from originalHeading -45 to originalHeading
-            tackAngle = boats[boatIndex].bestAngle(wind, originalHeading, tackLimit, targets[targetIndex]);
-            tackStatus = 1;
-            //If there is no suitable angle, try to tack for a small time in the other direction
-            if(tackAngle == -1){
-                tackStatus = 2;
-                tackLimit = 200;
-                tackAngle = boats[boatIndex].bestAngle(wind, originalHeading-45.0, tackLimit, targets[targetIndex]);
-                if(tackAngle == -1){
-                    //If again no suitable angle is found, try to tack
-                    //with a larger margin in the original direction
-                    tackAngle = ((int)(originalHeading +55.0)%360);
-                    cout<<"\n********\nNo suitable angle found\n********\n";
-                }
-            }
-
-        }
-        else{
-            tackAngle = boats[boatIndex].bestAngle(wind, originalHeading-45.0, tackLimit, targets[targetIndex]);
-            tackStatus = 2;
-            //If there is no suitable angle, try to tack for a small time in the other direction
-            if(tackAngle == -1){
-                tackStatus = 1;
-                tackLimit = 200;
-                tackAngle = boats[boatIndex].bestAngle(wind, originalHeading, tackLimit, targets[targetIndex]);
-                if(tackAngle == -1){
-                    //If again no suitable angle is found, try to tack
-                    //with a larger margin in the original direction
-                    int temp = (int)(originalHeading- 55.0);
-                    if(temp< 0){
-                        temp = 360 + temp;
-                    }
-                    tackAngle = temp;
-                    cout<<"\n********\nNo suitable angle found\n********\n";
-                }
-            }
-        }
-        cout<<"TackAngle: "<<tackAngle<<endl;
-
+        int iterations = 0;
+        int bestTack = 0;
+        tackAngle = boats[boatIndex].bestAngle(wind, tide, 0, 359, 1, 10, 3000, 5, targets[targetIndex], iterations, bestTack);
+        tackLimit = bestTack;
+        cout<<"TackAngle: "<<tackAngle<<" Iterations: "<<iterations<<" BestTack: "<<bestTack<<endl;
+        tackStatus = 1;
     }
     if(tackTimer > tackLimit){
         cout<<"Finished tack\n";
-        tackLimit = 600;
         tackTimer = 0;
         //change tack
         tackStatus = 0;
     }
-    if(tackStatus ==1){
+    if(tackStatus == 1){
         //turn until
-        if(abs(tackAngle - boats[boatIndex].getDirection()) >= 1.0){
-            boats[boatIndex].setRudder(boats[boatIndex].getRudder()+0.5);
+        if(abs(tackAngle - boats[boatIndex].getDirection()) >= 1){
+            physVector directionVector(3);
+            directionVector.setComponent(0, cos((boats[boatIndex].getDirection()/180.0)*M_PI));
+            directionVector.setComponent(2, sin((boats[boatIndex].getDirection()/180.0)*M_PI));
+            physVector wantedDirection(3);
+            wantedDirection.setComponent(0, cos((tackAngle/180.0)*M_PI));
+            wantedDirection.setComponent(2, sin((tackAngle/180.0)*M_PI));
+
+            //find closest direction to target
+            int direction = directionVector|wantedDirection;
+            boats[boatIndex].setSail(0.4);
+
+            if(direction == -1){
+                //boat direction is to the left
+
+                boats[boatIndex].setRudder(boats[boatIndex].getRudder()+0.8);
+
+            }
+            else{
+                boats[boatIndex].setRudder(boats[boatIndex].getRudder()-0.8);
+            }
         }
         else{
             //keep tack for a while
-            boats[boatIndex].setRudder(90.0);
-            tackTimer++;
-        }
-    }
-    else if(tackStatus == 2){
-        if(abs(tackAngle- boats[boatIndex].getDirection()) >= 1.0){
-            boats[boatIndex].setRudder(boats[boatIndex].getRudder()-0.5);
-        }
-        else{
+            boats[boatIndex].setSail(1);
             boats[boatIndex].setRudder(90.0);
             tackTimer++;
         }
@@ -430,7 +398,41 @@ void tackManager(int boatIndex){
     boats[boatIndex].setTackTimer(tackTimer);
     boats[boatIndex].setTackLimit(tackLimit);
     boats[boatIndex].setTackStatus(tackStatus);
+}
 
+void advancedMovement(int boatIndex){
+    int targetIndex = boats[boatIndex].getTargetIndex();
+    int tackStatus = boats[boatIndex].getTackStatus();
+    physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
+    
+    double trueWindAngle = (wind*-1)%north;
+    double trueTargetAngle = (vectToTarget)%north;
+    double angleDifference = abs(trueWindAngle-trueTargetAngle);
+
+    if(vectToTarget.getMagnitude()<3.0){
+        //reached target, move to next;
+        if(targetIndex==0){
+            int loopCount = boats[boatIndex].getLoopCount();
+            cout<<"************************\n";
+            cout<<"Boat: "<<boatIndex<<" ";
+            cout<<"Loop count: "<<loopCount;
+            cout<<" In: "<<(double)(timeStep-boats[boatIndex].getLastLoop())/FPS<<" seconds\n";
+            cout<<"************************\n";
+            boats[boatIndex].completedLoop();
+            boats[boatIndex].setLastLoop(timeStep);
+        }
+        targetIndex=(++targetIndex%2);
+        boats[boatIndex].setTargetIndex(targetIndex);
+    }
+    if(angleDifference >=35.0){
+        tackStatus = 0;
+        //boat can sail towards target
+        chaseTarget(boatIndex);
+        boats[boatIndex].setTackStatus(tackStatus);
+    }
+    else{
+        tackManager(boatIndex);
+    }
 }
 
 void ruleSet(int boatIndex){
@@ -550,12 +552,16 @@ static void display(void){
             glPopMatrix();
         }
 
-        for(int i =0; i<4; i++){
+        for(int i =0; i<2; i++){
             //move and draw boats
             if(timeStep%300 == 0){
                 cout<<"Boat: "<<i<<" ";
             }
-            ruleSet(i);
+            //ruleSet(i);
+            if(i==0)
+                advancedMovement(i);
+            else
+                ruleSet(i);
             boats[i].moveBoat(wind, tide, timeStep);
             drawBoat(i);
         }

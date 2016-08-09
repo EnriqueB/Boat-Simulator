@@ -5,6 +5,7 @@
 #include "battery.h"
 #include <string.h>
 #include <iostream>
+#include <cfloat>
 
 #define FPS 60.0
 
@@ -59,7 +60,9 @@ class boat{
         void completedLoop() { loopCount++; }
 
         void moveBoat(physVector wind, physVector tide, long long timeStep);
-        double bestAngle(physVector wind, double startAngle, int tackLimit, physVector target);
+        double bestAngle(physVector wind, physVector tide, double minAngle, double maxAngle,
+                int angleStep, int minTack, int maxTack, int tackStep, physVector target, 
+                int &iterations, int &bestTack);
 };
 
 boat::boat(){
@@ -131,20 +134,30 @@ void boat::setTackAngle(double t){
     }
 }
 
-
-double boat::bestAngle(physVector wind, double startAngle, int tackLimit, physVector target){
+double boat::bestAngle(physVector wind, physVector tide, double minAngle, double maxAngle,
+                int angleStep, int minTack, int maxTack, int tackStep, physVector target, 
+                int &iterations, int &bestTack){
     /*
     TODO: Change this function so that it returns
     the best angle that after x timeSteps will
     minimize the distance to target
     */
-    if(startAngle < 0){
-        startAngle = 360 + startAngle;
-    }
-    double bestMagnitude = 1000000000000;
+
+    if(minAngle < 0.0)     minAngle = 360.0 + minAngle;
+    if(maxAngle >= 360.0)   maxAngle = maxAngle - 360.0;
+
+    if(minTack <0)          minTack = 0;
+
+    if(angleStep<=0)        angleStep = 1;
+    if(tackStep<=0)         tackStep = 1;
+
+    iterations = 0;
+    double bestMagnitude = DBL_MAX;
     double bestAng = -1;
-    for(int i = (int)startAngle; i<(int)startAngle+45; i++){
-        double dir = (double)(i%360);
+    bestTack = -1;
+
+    for(int angle = (int)minAngle; angle<(int)maxAngle; angle+=angleStep){
+        double dir = (double)(angle%360);
         double speed=0;
         physVector north(3);
         north.setComponent(0, 1);
@@ -172,20 +185,29 @@ double boat::bestAngle(physVector wind, double startAngle, int tackLimit, physVe
         }
         speed *= wind.getMagnitude()/60.0;
         physVector directionVector(3);
-        directionVector.setComponent(0, cos((direction/180.0)*M_PI)*speed);
-        directionVector.setComponent(2, sin((direction/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
-        physVector pos = position;
-        pos = pos + directionVector*((double)tackLimit);
-        physVector vectToTarget = target-pos;
-        double magnitude = vectToTarget.getMagnitude();
+        directionVector.setComponent(0, cos((dir/180.0)*M_PI)*speed);
+        directionVector.setComponent(2, sin((dir/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
+        physVector pos;
 
-        if(magnitude<bestMagnitude){
-            bestMagnitude = magnitude;
-            bestAng = dir;
+        for(int tack = minTack; tack<maxTack; tack+=tackStep){
+            pos = position;
+            pos = pos + directionVector*((double)tack);
+            pos = pos + tide*((double)tack);
+            physVector vectToTarget = target-pos;
+            double magnitude = vectToTarget.getMagnitude();
+
+            if(magnitude<bestMagnitude){
+                bestMagnitude = magnitude;
+                bestAng = dir;
+                bestTack = tack;
+            }
+            iterations++;
         }
+        iterations++;
     }
+    tackLimit = bestTack;
+    tackAngle = bestAng;
     return bestAng;
-
 }
 
 void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
@@ -206,11 +228,11 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     if (BoatWindAngle> 180.0){
         BoatWindAngle = 360.0-BoatWindAngle;
     }
-    if (BoatWindAngle <= angle_sailingPoints[0]){
+    if (BoatWindAngle < angle_sailingPoints[0]){
         //no go zone
         speed = 0.15;
     }
-    else if(BoatWindAngle > angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
+    else if(BoatWindAngle >= angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
         double m = (speed_sailingPoints[1]-speed_sailingPoints[0])/(angle_sailingPoints[1]-angle_sailingPoints[0]);
         double b = speed_sailingPoints[0] - m*angle_sailingPoints[0];
         speed = m* BoatWindAngle + b;
