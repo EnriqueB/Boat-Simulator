@@ -27,8 +27,6 @@ float lx=0.0f,lz=-1.0f, cy=0;
 // XZ position of the camera
 float x=0.0f,z=100.0f;
 
-float red=1.0f, blue=1.0f, green=1.0f;
-
 // angle for rotating triangle
 float angle = 0.0f;
 float acceleration;
@@ -38,6 +36,10 @@ vector <boat> boats;
 physVector tide(3);
 physVector targets [4];
 physVector north(3);
+double w[] = {0.0, 0.0, 10.0};
+physVector wind(3, w);
+
+double avgFitness = 0;
 
 bool GUI = false;
 
@@ -45,8 +47,6 @@ int runIndex =0;
 
 long long timeStep;
 long long lastLoop = 0;
-double w[] = {0.0, 0.0, 10.0};
-physVector wind(3, w);
 double originalHeading;
 
 double sailingPoints[][3] = {{10.0,  85.0, 95.0},
@@ -58,6 +58,12 @@ double speedPoints[][3] = {{0.3, 0.95, 0.8},
                                 {0.3, 0.95, 0.8},
                                 {0.3, 0.95, 0.8}};
 bool usedSrand = false;
+
+
+/*
+ * This struct is used as individuals for the
+ * genetic algorithm system.
+ */
 struct INDIVIDUAL{
     int iterations;
     int loops;
@@ -96,16 +102,18 @@ struct INDIVIDUAL{
 
 vector <INDIVIDUAL> individuals(POPULATION_SIZE);
 
+/*
+ * The genetic algorithm uses tournament selection.
+ * The parameter type determines the type of 
+ * tournament, true for normal, false for negative
+ */
 int tournament(bool type){
-    //Tournament selection
-    //type = true for normal, false for negative tournament
 	double fitness = (double)INT32_MAX;
     if(type)fitness = 0;
 	int index = 0;
 	for (int i = 0; i < TOURNAMENT_SIZE; i++) {
 		int ind = rand() % POPULATION_SIZE;
-        //check tournament type
-		if ((individuals[ind].fitness> fitness)==type) {
+		if ((individuals[ind].fitness> fitness)==type) {  //check tournament type
 			fitness = individuals[ind].fitness;
 			index = ind;
 		}
@@ -113,6 +121,11 @@ int tournament(bool type){
 	return index;
 }
 
+/*
+ * The crossover method returns a new individual
+ * product of crossing the genes of parent p1 and
+ * parent p2. It uses the box crossover method
+ */
 INDIVIDUAL crossOver(int p1, int p2){
     INDIVIDUAL ind;
     double random;
@@ -120,41 +133,48 @@ INDIVIDUAL crossOver(int p1, int p2){
         random = ((double)rand()/RAND_MAX);
         ind.parameters[i] = individuals[p1].parameters[i]*random + individuals[p2].parameters[i]*(1-random);
     }
+    //minTack cannot be smaller than maxTack and they cannot be equal
     while((ind.parameters[3] > ind.parameters[4]) || (ind.parameters[3] == ind.parameters[4])){
         random = ((double)rand()/RAND_MAX);
         ind.parameters[3] = individuals[p1].parameters[3]*random + individuals[p2].parameters[3]*(1-random);
         ind.parameters[4] = individuals[p1].parameters[4]*random + individuals[p2].parameters[4]*(1-random);
     }
-
     return ind;
 }
 
+/*
+ * The mutate method returns a new individual
+ * product of mutating the genes of the parent
+ */
 INDIVIDUAL mutate(int parent){
     INDIVIDUAL ind;
     double random;
-    double sigmaAngle = 10;
+    
+    //A different sigma is used for angles and tacks
+    double sigmaAngle = 10; 
     double sigmaTack = 100;
     for(int i =0; i<3; i++){
-        do{
+        do{ //parameters cannot be negative
             random = ((double)rand()/RAND_MAX);
             random = -1.0 + random*2.0;
             ind.parameters[i] = individuals[parent].parameters[i]+sigmaAngle*random;
         }while(ind.parameters[i]<=0);
     }
     for(int i = 3; i<5; i++){
-        do{
+        do{ //parameters cannot be negative
             random = ((double)rand()/RAND_MAX);
             random = -1.0 + random*2.0;
             ind.parameters[i] = individuals[parent].parameters[i]+sigmaTack*random;
         }while(ind.parameters[i]<=0);
     }
+    //minTack cannot be smaller than maxTack and they cannot be equal
     while((ind.parameters[3] > ind.parameters[4]) || (ind.parameters[3] == ind.parameters[4])){
         random = ((double)rand()/RAND_MAX);
         random = -1.0 + random*2.0;
         ind.parameters[3] = individuals[parent].parameters[3]+sigmaTack*random;
         ind.parameters[4] = individuals[parent].parameters[4]+sigmaTack*random;
     }
-    do{
+    do{ //parameters cannot be negative
        random = ((double)rand()/RAND_MAX);
        random = -1.0 + random*2.0;
        ind.parameters[5] = individuals[parent].parameters[5]+sigmaAngle*random;
@@ -162,6 +182,11 @@ INDIVIDUAL mutate(int parent){
     return ind;
 }
 
+/*
+ * This methid generates an offspring.
+ * It decides randomly over generating
+ * it by crossover or mutation
+ */
 int generateOffspring(){
     double random = ((double)rand() / RAND_MAX);
     INDIVIDUAL ind;
@@ -175,6 +200,7 @@ int generateOffspring(){
         ind = crossOver(parent1, parent2);
 
         index = tournament(false);
+        avgFitness = avgFitness - (individuals[index].fitness/((double)POPULATION_SIZE));
         individuals[index] = ind;
     }
     else{                       //mutation
@@ -183,11 +209,16 @@ int generateOffspring(){
 
         ind = mutate(index);
         index = tournament(false);
+        avgFitness = avgFitness - (individuals[index].fitness/((double)POPULATION_SIZE));
         individuals[index] = ind;
     }
     return index;
 }
 
+/*
+ * This method initiates the initial vectors:
+ * Boats, targets and tide.
+ */
 void initVectors(int ammountIndividuals){
     timeStep=0;
     physVector pos;
@@ -255,7 +286,7 @@ void initVectors(int ammountIndividuals){
     */
 }
 
-
+    
 void changeSize(int w, int h){
 // Prevent a divide by zero, when window is too short
 // (you cant make a window of zero width).
@@ -279,12 +310,13 @@ void changeSize(int w, int h){
     glMatrixMode(GL_MODELVIEW);
 }
 
-
+/*
+ * This method draws the boat
+ */
 void drawBoat(int boatIndex){
     physVector pos = boats[boatIndex].getPosition();
-    double ang = 360-boats[boatIndex].getDirection();
+    double ang = 360-boats[boatIndex].getDirection(); //rotate angle to the coordinate system used by opengl
     glPushMatrix();
-        //glRotated(angle, 0, 1, 0);
         //hull
         glPushMatrix();
             glTranslated(pos.getComponent(0), pos.getComponent(1), pos.getComponent(2));
@@ -333,7 +365,10 @@ void drawBoat(int boatIndex){
 
 }
 
-
+/*
+ * Base chasing method. The boat makes a straight
+ * line towards the target
+ */
 void chaseTarget(int boatIndex){
     int targetIndex = boats[boatIndex].getTargetIndex();
     //move towards target
@@ -346,11 +381,9 @@ void chaseTarget(int boatIndex){
 
     //find closest direction to target
     int direction = directionVector|vectToTarget;
-    //if(timeStep%300 == 0)
-     //   cout<<"Angle to target: "<<angleToTarget<<"   "<<direction<<"    ";
-    //modify direction to reach target
 
-    if(angleToTarget > -3 && angleToTarget < 3){
+    //modify direction to reach target
+    if(angleToTarget > -3 && angleToTarget < 3){    //if the boat's direction is close to the target's direction, reset rudder
         boats[boatIndex].setRudder(90);
     }
     if(direction == -1){
@@ -368,6 +401,9 @@ void chaseTarget(int boatIndex){
     }
 }
 
+/*
+ * This method implements basic tacking. 
+ */
 void baseTacking(int boatIndex){
     /*
      * 1.- Turn towards target
@@ -380,10 +416,6 @@ void baseTacking(int boatIndex){
     int tackTimer = boats[boatIndex].getTackTimer();
     int tackLimit = boats[boatIndex].getTackLimit();
 
-    //if(timeStep%300==0){
-    //    cout<<"Tacking stat: "<<tackStatus<<" # ";
-    //}
-
     physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
     physVector directionVector(3);
     directionVector.setComponent(0, cos((boats[boatIndex].getDirection()/180.0)*M_PI));
@@ -395,8 +427,6 @@ void baseTacking(int boatIndex){
     if(tackStatus == 0){
         //turn towards target
         //find closest direction to target
-        //if(timeStep%300 == 0)
-        //    cout<<"Angle to target: "<<angleToTarget<<"  ";
         //modify direction to reach target
         if(angleToTarget > -2 && angleToTarget < 2){
             boats[boatIndex].setRudder(90);
@@ -434,14 +464,13 @@ void baseTacking(int boatIndex){
         if(angleDifference>180.0){
             angleDifference = 360-angleDifference;
         }
-        if(angleDifference >=30.0){
+        if(angleDifference >=30.0){ //boat can sail towards target
             tackStatus = 0;
             tackTimer = 0;
             tackLimit = 300;
-            //boat can sail towards target
             chaseTarget(boatIndex);
         }
-        else{
+        else{                       //target is still upwind
             tackLimit = 600;
             tackTimer = 0;
             if(tackStatus == 1){
@@ -461,15 +490,14 @@ void baseTacking(int boatIndex){
             }
         }
     }
-    if(tackStatus ==1){
+    if(tackStatus == 1){
         //turn until facing direction
         if(abs(tackAngle - boats[boatIndex].getDirection()) >= 1.0){
             boats[boatIndex].setSail(0.3); //reduce speed while turning
             boats[boatIndex].setRudder(boats[boatIndex].getRudder()+0.5);
         }
-        else{
+        else{   //keep tack for a while
             boats[boatIndex].setSail(1);
-            //keep tack for a while
             boats[boatIndex].setRudder(90.0);
             tackTimer++;
         }
@@ -479,7 +507,7 @@ void baseTacking(int boatIndex){
             boats[boatIndex].setSail(0.3);  //reduce speed while turning
             boats[boatIndex].setRudder(boats[boatIndex].getRudder()-0.5);
         }
-        else{
+        else{   //keep tack for a while
             boats[boatIndex].setSail(1);
             boats[boatIndex].setRudder(90.0);
             tackTimer++;
@@ -506,10 +534,8 @@ void tackManager(int boatIndex){
 
     if(tackStatus == 0){
         //obtain side
-        //cout<<"Begin tack\n";
         int iterations = 0;
         int bestTack = 0;
-        //tackAngle = boats[boatIndex].bestAngle(wind, tide, 0, 359, 5, 10, 3000, 20, targets[targetIndex], iterations, bestTack);
         double targetAngle = (targets[targetIndex])%north;
         int pilot = boats[boatIndex].getPilot();
         int minAngle = targetAngle - individuals[pilot].parameters[0];
@@ -521,11 +547,9 @@ void tackManager(int boatIndex){
         tackAngle = boats[boatIndex].bestAngle(wind, tide, minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], iterations, bestTack);
         individuals[pilot].iterations = iterations;
         tackLimit = bestTack;
-        //cout<<"Boat: "<<boatIndex<<" TackAngle: "<<tackAngle<<" Iterations: "<<iterations<<" BestTack: "<<bestTack<<endl;
         tackStatus = 1;
     }
     if(tackTimer > tackLimit){
-        //cout<<"Finished tack\n";
         tackTimer = 0;
         //change tack
         tackStatus = 0;
@@ -554,8 +578,7 @@ void tackManager(int boatIndex){
                 boats[boatIndex].setRudder(boats[boatIndex].getRudder()-0.8);
             }
         }
-        else{
-            //keep tack for a while
+        else{   //keep tack for a while
             boats[boatIndex].setSail(1);
             boats[boatIndex].setRudder(90.0);
             tackTimer++;
@@ -648,9 +671,6 @@ void ruleSet(int boatIndex){
     if(angleDifference>180.0){
         angleDifference = 360-angleDifference;
     }
-    //if(timeStep%300==0){
-       // cout<<"AngleDifference: "<<angleDifference<<"  ";
-    //}
 
     if(angleDifference >=30.0 && tackStatus == 0){
         tackStatus = 0;
@@ -871,12 +891,14 @@ int main(int argc, char *argv[]){
             }
             individuals[i+runIndex*50].loops = fitness/10;
             individuals[i+runIndex*50].fitness = fitness/4.0 - 0.001*((double)individuals[i].iterations);
+            avgFitness+=individuals[i+runIndex*50].fitness;
             if(individuals[i+runIndex*50].fitness > maxFitness){
                 maxIndex = i+runIndex*50;
                 maxFitness = individuals[i+runIndex*50].fitness;
             }
         }
     }
+    avgFitness = avgFitness/((double)POPULATION_SIZE);
     printIndividualsToFile();
     FILE *fp;
     for(int i=0; i<GENERATIONS; i++){
@@ -903,8 +925,9 @@ int main(int argc, char *argv[]){
             maxFitness = individuals[pilot].fitness;
             cout<<"MaxFitness: "<<maxFitness<<endl;
         }
+        avgFitness = avgFitness + individuals[pilot].fitness/((double)POPULATION_SIZE);
         fp = fopen("generations.txt", "a");
-        fprintf(fp, "Generation: %d, MaxFitness: %f\n", i, maxFitness);
+        fprintf(fp, "Generation: %d, MaxFitness: %f, AVGFitness: %f\n", i, maxFitness, avgFitness);
         fclose(fp);
         printIndividualsToFile();
     }
@@ -919,4 +942,3 @@ int main(int argc, char *argv[]){
 
     return EXIT_SUCCESS;
 }
-
