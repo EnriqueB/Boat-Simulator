@@ -877,7 +877,7 @@ int main(int argc, char *argv[]){
             }
         }
     }
-    printIndividualToFile();
+    printIndividualsToFile();
     FILE *fp;
     for(int i=0; i<GENERATIONS; i++){
         //generate offspring
@@ -906,7 +906,7 @@ int main(int argc, char *argv[]){
         fp = fopen("generations.txt", "a");
         fprintf(fp, "Generation: %d, MaxFitness: %f\n", i, maxFitness);
         fclose(fp);
-        printIndividualToFile();
+        printIndividualsToFile();
     }
 
     //check fitness
