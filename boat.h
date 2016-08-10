@@ -6,6 +6,7 @@
 #include <string.h>
 #include <iostream>
 #include <cfloat>
+#include <algorithm>
 
 #define FPS 60.0
 
@@ -26,10 +27,11 @@ class boat{
         int tackStatus;
         int loopCount;
         long long lastLoop;
+        int pilot;
 
     public:
        boat();
-        boat(double x, double y, double dir, double angles[], double speeds[]);
+        boat(double x, double y, double dir, double angles[], double speeds[], int ind);
 
         //setters
         void setPosition(physVector pos) { position = pos; }
@@ -42,6 +44,7 @@ class boat{
         void setTackLimit(int t) { tackLimit = t; }
         void setTackStatus(int t) { tackStatus = t; }
         void setLastLoop(long long l) { lastLoop = l; }
+        void setPilot(int i) { pilot = i; }
 
         //getters
         physVector getPosition() { return position; }
@@ -56,6 +59,7 @@ class boat{
         int getTackStatus() { return tackStatus; }
         int getLoopCount() { return loopCount; }
         long long getLastLoop() { return lastLoop; }
+        int getPilot() { return pilot; }
 
         void completedLoop() { loopCount++; }
 
@@ -80,7 +84,7 @@ boat::boat(){
     lastLoop = 0;
 }
 
-boat::boat(double x, double y, double dir, double angles[], double speeds[]){
+boat::boat(double x, double y, double dir, double angles[], double speeds[], int ind){
     position.setComponent(0, x);
     position.setComponent(2, y);
     position.setComponent(1, 0);
@@ -101,6 +105,7 @@ boat::boat(double x, double y, double dir, double angles[], double speeds[]){
     tackStatus = 0;
     loopCount = 0;
     lastLoop = 0;
+    pilot = ind;
 }
 
 void boat::setRudder(double r){
@@ -144,6 +149,12 @@ double boat::bestAngle(physVector wind, physVector tide, int minAngle, int maxAn
 
     if(minTack <0)          minTack = 0;
 
+    if(minTack>maxTack){
+        int temp = maxTack;
+        maxTack = minTack;
+        minTack = temp;
+    }
+
     if(angleStep<=0)        angleStep = 1;
     if(tackStep<=0)         tackStep = 1;
 
@@ -163,7 +174,7 @@ double boat::bestAngle(physVector wind, physVector tide, int minAngle, int maxAn
 
         if (BoatWindAngle <= angle_sailingPoints[0]){
             //no go zone
-            speed = 0.15;
+            speed = 0.10;
         }
         else if(BoatWindAngle > angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
             double m = (speed_sailingPoints[1]-speed_sailingPoints[1])/(angle_sailingPoints[1]-angle_sailingPoints[0]);
@@ -226,7 +237,7 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     }
     if (BoatWindAngle < angle_sailingPoints[0]){
         //no go zone
-        speed = 0.15;
+        speed = 0.10;
     }
     else if(BoatWindAngle >= angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
         double m = (speed_sailingPoints[1]-speed_sailingPoints[0])/(angle_sailingPoints[1]-angle_sailingPoints[0]);

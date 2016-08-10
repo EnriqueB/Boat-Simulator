@@ -8,12 +8,13 @@
 #include <time.h>
 #include <cmath>
 #include <vector>
+#include <stdio.h>
 
 #define FPS 60.0
 
-#define POPULATION_SIZE 50
+#define POPULATION_SIZE 100
 #define TOURNAMENT_SIZE 5
-#define GENERATIONS 100
+#define GENERATIONS 5
 #define XOVER_RATE 0.9
 
 using namespace std;
@@ -38,6 +39,10 @@ physVector tide(3);
 physVector targets [4];
 physVector north(3);
 
+bool GUI = false;
+
+int runIndex =0;
+
 long long timeStep;
 long long lastLoop = 0;
 double w[] = {0.0, 0.0, 10.0};
@@ -55,6 +60,7 @@ double speedPoints[][3] = {{0.3, 0.95, 0.8},
 bool usedSrand = false;
 struct INDIVIDUAL{
     int iterations;
+    int loops;
     double fitness;
     /*
      * 0: minAngle
@@ -73,6 +79,7 @@ struct INDIVIDUAL{
         }
         fitness = 0;
         iterations = 0;
+        loops=0;
         parameters[0] = rand()%180;
         parameters[1] = rand()%180;
         parameters[2] = rand()%50 + 1;
@@ -93,12 +100,12 @@ int tournament(bool type){
     //Tournament selection
     //type = true for normal, false for negative tournament
 	double fitness = (double)INT32_MAX;
-    if(!type)fitness = 0;
+    if(type)fitness = 0;
 	int index = 0;
 	for (int i = 0; i < TOURNAMENT_SIZE; i++) {
 		int ind = rand() % POPULATION_SIZE;
         //check tournament type
-		if ((individuals[ind].fitness< fitness)==type) {
+		if ((individuals[ind].fitness> fitness)==type) {
 			fitness = individuals[ind].fitness;
 			index = ind;
 		}
@@ -106,39 +113,90 @@ int tournament(bool type){
 	return index;
 }
 
-void generateOffspring(){
+INDIVIDUAL crossOver(int p1, int p2){
+    INDIVIDUAL ind;
+    double random;
+    for(int i=0; i<6; i++){
+        random = ((double)rand()/RAND_MAX);
+        ind.parameters[i] = individuals[p1].parameters[i]*random + individuals[p2].parameters[i]*(1-random);
+    }
+    while((ind.parameters[3] > ind.parameters[4]) || (ind.parameters[3] == ind.parameters[4])){
+        random = ((double)rand()/RAND_MAX);
+        ind.parameters[3] = individuals[p1].parameters[3]*random + individuals[p2].parameters[3]*(1-random);
+        ind.parameters[4] = individuals[p1].parameters[4]*random + individuals[p2].parameters[4]*(1-random);
+    }
+
+    return ind;
+}
+
+INDIVIDUAL mutate(int parent){
+    INDIVIDUAL ind;
+    double random;
+    double sigmaAngle = 10;
+    double sigmaTack = 100;
+    for(int i =0; i<3; i++){
+        do{
+            random = ((double)rand()/RAND_MAX);
+            random = -1.0 + random*2.0;
+            ind.parameters[i] = individuals[parent].parameters[i]+sigmaAngle*random;
+        }while(ind.parameters[i]<=0);
+    }
+    for(int i = 3; i<5; i++){
+        do{
+            random = ((double)rand()/RAND_MAX);
+            random = -1.0 + random*2.0;
+            ind.parameters[i] = individuals[parent].parameters[i]+sigmaTack*random;
+        }while(ind.parameters[i]<=0);
+    }
+    while((ind.parameters[3] > ind.parameters[4]) || (ind.parameters[3] == ind.parameters[4])){
+        random = ((double)rand()/RAND_MAX);
+        random = -1.0 + random*2.0;
+        ind.parameters[3] = individuals[parent].parameters[3]+sigmaTack*random;
+        ind.parameters[4] = individuals[parent].parameters[4]+sigmaTack*random;
+    }
+    do{
+       random = ((double)rand()/RAND_MAX);
+       random = -1.0 + random*2.0;
+       ind.parameters[5] = individuals[parent].parameters[5]+sigmaAngle*random;
+    }while(ind.parameters[5]<=0);
+    return ind;
+}
+
+int generateOffspring(){
     double random = ((double)rand() / RAND_MAX);
     INDIVIDUAL ind;
+    int index;
 
     if(random < XOVER_RATE){ //crossover
         //pick two parents
         int parent1 = tournament(true);
         int parent2 = tournament(true);
 
-        //TODO do xover
-
-        int index = tournament(false);
-        individuals[index] = ind;
-    }
-    else{                       //mutation
-        //pick one parent
-        int index = tournament(true);
-
-        //TODO do mutation
+        ind = crossOver(parent1, parent2);
 
         index = tournament(false);
         individuals[index] = ind;
     }
+    else{                       //mutation
+        //pick one parent
+        index = tournament(true);
+
+        ind = mutate(index);
+        index = tournament(false);
+        individuals[index] = ind;
+    }
+    return index;
 }
 
-void initVectors(){
+void initVectors(int ammountIndividuals){
     timeStep=0;
     physVector pos;
+    boats.clear();
 
     //generate random original positions
     double x, y, ang;
-    for(int j=0; j<POPULATION_SIZE; j++){
-        for(int i=0; i<4; i++){
+    for(int i=0; i<ammountIndividuals; i++){
+        for(int j=0; j<4; j++){
         /*
             x= (double)rand() / RAND_MAX;               //HARDCODED
             x = -20 + x*40;
@@ -149,13 +207,12 @@ void initVectors(){
             ang = (double)rand()/RAND_MAX;
             ang*=360.0;
         */
-            boat b(0.0, 0.0, 270.0, sailingPoints[i], speedPoints[i]);
+            boat b(0.0, 0.0, 270.0, sailingPoints[j], speedPoints[j], i+(50*runIndex));
             boats.push_back(b);
-            //sailingPoints[0] = sailingPoints[0];//+(double)i*5.0;
         }
     }
 
-    boat base(0.0, 0.0, 270.0, sailingPoints[1], speedPoints[0]);
+    boat base(0.0, 0.0, 270.0, sailingPoints[1], speedPoints[0], 0);
     boats.push_back(base);
 
 
@@ -454,16 +511,17 @@ void tackManager(int boatIndex){
         int bestTack = 0;
         //tackAngle = boats[boatIndex].bestAngle(wind, tide, 0, 359, 5, 10, 3000, 20, targets[targetIndex], iterations, bestTack);
         double targetAngle = (targets[targetIndex])%north;
-        int minAngle = targetAngle - individuals[boatIndex/4].parameters[0];
-        int maxAngle = targetAngle + individuals[boatIndex/4].parameters[1];
-        int angleStep = individuals[boatIndex/4].parameters[2];
-        int minTack = individuals[boatIndex/4].parameters[3];
-        int maxTack = individuals[boatIndex/4].parameters[4];
-        int tackStep = individuals[boatIndex/4].parameters[5];
+        int pilot = boats[boatIndex].getPilot();
+        int minAngle = targetAngle - individuals[pilot].parameters[0];
+        int maxAngle = targetAngle + individuals[pilot].parameters[1];
+        int angleStep = individuals[pilot].parameters[2];
+        int minTack = individuals[pilot].parameters[3];
+        int maxTack = individuals[pilot].parameters[4];
+        int tackStep = individuals[pilot].parameters[5];
         tackAngle = boats[boatIndex].bestAngle(wind, tide, minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], iterations, bestTack);
-        individuals[boatIndex/4].iterations = iterations;
+        individuals[pilot].iterations = iterations;
         tackLimit = bestTack;
-        cout<<"Boat: "<<boatIndex<<" TackAngle: "<<tackAngle<<" Iterations: "<<iterations<<" BestTack: "<<bestTack<<endl;
+        //cout<<"Boat: "<<boatIndex<<" TackAngle: "<<tackAngle<<" Iterations: "<<iterations<<" BestTack: "<<bestTack<<endl;
         tackStatus = 1;
     }
     if(tackTimer > tackLimit){
@@ -615,66 +673,67 @@ void ruleSet(int boatIndex){
 
 static void display(void){
     if(timeStep >= 18000){
-        glutLeaveMainLoop();
+        if(GUI) glutLeaveMainLoop();
     }
     auto now = chrono::steady_clock::now();
     chrono::duration<double> diff = now-start;
 
     //60 FPS
     if(diff.count() >  1.0/FPS){
-        glMatrixMode (GL_PROJECTION);
-        glLoadIdentity ();
-        glFrustum (-1.0, 1.0, -1.0, 1.0, 1.5, 2000.0);
-        glMatrixMode(GL_MODELVIEW);
-        const double t = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
-        const double a = t*90.0;
+        if(GUI){
+            glMatrixMode (GL_PROJECTION);
+            glLoadIdentity ();
+            glFrustum (-1.0, 1.0, -1.0, 1.0, 1.5, 2000.0);
+            glMatrixMode(GL_MODELVIEW);
+            const double t = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
+            const double a = t*90.0;
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glLoadIdentity();
-        // Set the camera
-        gluLookAt(	x, 10.0f+cy, z,
-        x+lx, 10.0f, z+lz,
-        0.0f, 1.0f, 0.0f);
+            glLoadIdentity();
+            // Set the camera
+            gluLookAt(	x, 10.0f+cy, z,
+            x+lx, 10.0f, z+lz,
+            0.0f, 1.0f, 0.0f);
 
-        // Draw ground
+            // Draw ground
 
-        //????
-        //glColor3f(0,0,.8);
-        glClearColor(0, 0, 1, 1);
-        glBegin(GL_QUADS);
-            glColor3d(0, 0, 0.6);
-            glVertex3f(-1000.0f, -0.05f, -1000.0f);
-            glVertex3f(-1000.0f, -0.05f, 1000.0f);
-            glVertex3f( 1000.0f, -0.05f, 1000.0f);
-            glVertex3f( 1000.0f, -0.05f, -1000.0f);
-        glEnd();
+            //????
+            //glColor3f(0,0,.8);
+            glClearColor(0, 0, 1, 1);
+            glBegin(GL_QUADS);
+                glColor3d(0, 0, 0.6);
+                glVertex3f(-1000.0f, -0.05f, -1000.0f);
+                glVertex3f(-1000.0f, -0.05f, 1000.0f);
+                glVertex3f( 1000.0f, -0.05f, 1000.0f);
+                glVertex3f( 1000.0f, -0.05f, -1000.0f);
+            glEnd();
 
-        glColor3d(0.65,0.35,0);
-        physVector pos;
+            glColor3d(0.65,0.35,0);
+            //physVector pos;
 
-        //draw targets
-        for(int i=0; i<2; i++){
-            glPushMatrix();
-                glTranslated(targets[i].getComponent(0), targets[i].getComponent(1), targets[i].getComponent(2));
-                glColor3d(0, 0, 0);
-                glutWireSphere(1, 10, 10);
-                glColor3d(1, (double)i*0.25, (double)i*0.2);
-                glutSolidSphere(1, 10, 10);
-            glPopMatrix();
+            //draw targets
+            for(int i=0; i<2; i++){
+                glPushMatrix();
+                    glTranslated(targets[i].getComponent(0), targets[i].getComponent(1), targets[i].getComponent(2));
+                    glColor3d(0, 0, 0);
+                    glutWireSphere(1, 10, 10);
+                    glColor3d(1, (double)i*0.25, (double)i*0.2);
+                    glutSolidSphere(1, 10, 10);
+                glPopMatrix();
+            }
         }
-
         for(int i =0; i<boats.size(); i++){
             //move and draw boats
             if(i<boats.size()-1)
                advancedMovement(i);
             else
                 ruleSet(i);
-            
+
             boats[i].moveBoat(wind, tide, timeStep);
-            drawBoat(i);
+            if(GUI) drawBoat(i);
         }
-        glutSwapBuffers();
+        if(GUI) glutSwapBuffers();
         timeStep++;
 	    start = chrono::steady_clock::now();
     }
@@ -762,9 +821,21 @@ void initAndRun(int argc, char *argv[]){
 }
 
  //Program entry point
+ void printIndividualsToFile(){
+    FILE *fileHandler;
+    fileHandler = fopen("individuals.txt", "w");
+    fprintf(fileHandler, "Ind#\tFitness\tIterations\tLoops\tParameters\n");
+    for(int i=0; i<POPULATION_SIZE; i++){
+        fprintf(fileHandler, "%d\t\t%f\t\t%d\t\t%d", i, individuals[i].fitness, individuals[i].iterations, individuals[i].loops);
+        for(int j =0; j<6; j++){
+            fprintf(fileHandler, "\t\t%d", individuals[i].parameters[j]);
+        }
+        fprintf(fileHandler,"\n");
+    }
+    fclose(fileHandler);
+ }
 
 int main(int argc, char *argv[]){
-
     /*
     glEnable(GL_LIGHT0);
     glEnable(GL_NORMALIZE);
@@ -780,27 +851,68 @@ int main(int argc, char *argv[]){
     glMaterialfv(GL_FRONT, GL_DIFFUSE,   mat_diffuse);
     glMaterialfv(GL_FRONT, GL_SPECULAR,  mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
-*/
-
-    initVectors();
-    initAndRun(argc, argv);
-    /*
-    int p;
-    cin>>p;
-
-    initAndRun(argc, argv);
     */
-    //check fitness
-    for(int i=0; i<POPULATION_SIZE; i++){
+
+    double maxFitness = 0;
+    int maxIndex =0;
+    for(; runIndex<2; runIndex++){
+        initVectors(50);
+        if(GUI) initAndRun(argc, argv);
+        else{
+            timeStep = 0;
+            while(timeStep <=18000){
+                display();
+            }
+        }
+        for(int i=0; i<50; i++){
+            double fitness = 0;
+            for(int j=0; j<4; j++){
+                fitness+=(boats[i+j].getLoopCount()*10);
+            }
+            individuals[i+runIndex*50].loops = fitness/10;
+            individuals[i+runIndex*50].fitness = fitness/4.0 - 0.001*((double)individuals[i].iterations);
+            if(individuals[i+runIndex*50].fitness > maxFitness){
+                maxIndex = i+runIndex*50;
+                maxFitness = individuals[i+runIndex*50].fitness;
+            }
+        }
+    }
+    printIndividualToFile();
+    FILE *fp;
+    for(int i=0; i<GENERATIONS; i++){
+        //generate offspring
+        int pilot = generateOffspring();
+        initVectors(1);
+        for(int j=0; j<4; j++){
+            boats[j].setPilot(pilot);
+        }
+        if(GUI) initAndRun(argc, argv);
+        else{
+            while(timeStep <=18000){
+                display();
+            }
+        }
+        //checkFitness
         double fitness = 0;
         for(int j=0; j<4; j++){
-            fitness+=boats[i+j].getLoopCount();
+            fitness += (boats[j].getLoopCount()*10);
         }
-        individuals[i].fitness = fitness/4.0 - 0.001*((double)individuals[i].iterations);
+        individuals[pilot].fitness = fitness/4.0 - 0.001*((double)individuals[i].iterations);
+        if(individuals[pilot].fitness>maxFitness){
+            maxIndex = pilot;
+            maxFitness = individuals[pilot].fitness;
+            cout<<"MaxFitness: "<<maxFitness<<endl;
+        }
+        fp = fopen("generations.txt", "a");
+        fprintf(fp, "Generation: %d, MaxFitness: %f\n", i, maxFitness);
+        fclose(fp);
+        printIndividualToFile();
     }
 
+    //check fitness
+
     for(int i=0; i<POPULATION_SIZE; i++){
-        cout<<"Fitness: "<<individuals[i].fitness<<" Iterations: "<<individuals[i].iterations<<endl;
+        cout<<i<<" Fitness: "<<individuals[i].fitness<<" Iterations: "<<individuals[i].iterations<<endl;
         cout<<"MinAngle: "<<individuals[i].parameters[0]<<" MaxAngle: "<<individuals[i].parameters[1]<<" AngleStep: "<<individuals[i].parameters[2]<<endl;
         cout<<"MinTack: "<<individuals[i].parameters[3]<<" MaxTack: "<<individuals[i].parameters[4]<<" TackStep: "<<individuals[i].parameters[5]<<endl<<endl;
     }
