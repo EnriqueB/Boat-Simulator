@@ -926,7 +926,7 @@ int main(int argc, char *argv[]){
             pilot[j] = generateOffspring();
             for(int l=0; l<4; l++){
                 boats[l+j].setPilot(pilot[j]);
-
+                cout<<"Boat: "<<l+j<<" Pilot: "<<pilot[j]<<" BoatPilot: "<<boats[l+j].getPilot()<<endl;
             }
             
         cout<<pilot[j]<<" Fitness: "<<individuals[pilot[j]].fitness<<" Iterations: "<<individuals[pilot[j]].iterations<<endl;
