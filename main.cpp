@@ -275,11 +275,11 @@ void initVectors(int ammountIndividuals){
     }
     */
     targets[0].setComponent(0,0.0);
-    targets[0].setComponent(2,-100.0);
+    targets[0].setComponent(2,-125.0);
     targets[0].setComponent(1, 0.5);
 
     targets[1].setComponent(0,0);
-    targets[1].setComponent(2,100.0);
+    targets[1].setComponent(2,125.0);
     targets[1].setComponent(1,0.5);
     /*
     targets[2].setComponent(0, 100);
@@ -625,7 +625,7 @@ void advancedMovement(int boatIndex){
         targetIndex=(++targetIndex%2);
         boats[boatIndex].setTargetIndex(targetIndex);
     }
-    if(angleDifference >=35.0 && vectToTarget.getMagnitude() < 25){
+    if(angleDifference >=35.0 && vectToTarget.getMagnitude() < 50.0){
         tackStatus = 0;
         //boat can sail towards target
         chaseTarget(boatIndex);

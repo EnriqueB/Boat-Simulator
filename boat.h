@@ -260,7 +260,7 @@ double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
                 }
             }
 
-            pos = pos + (tide*2)*((double)timeDeepWaters) + tide*((double)tack-timeDeepWaters);
+            pos = pos + (tide*2.5)*((double)timeDeepWaters) + tide*((double)tack-timeDeepWaters);
 
             physVector vectToTarget = target-pos;
             double magnitude = vectToTarget.getMagnitude();
@@ -280,7 +280,6 @@ double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
 }
 
 void boat::moveBoat(long long timeStep){
-    position = position + tide;
     double leewayForce=0;
     //direction going
 
@@ -353,6 +352,13 @@ void boat::moveBoat(long long timeStep){
     }
     leewayVector = (leewayVector * (leewayForce * leeway))*0.005;
     position = position + leewayVector;
+
+    if(position.getComponent(0) > 0){
+        position = position + tide;
+    }
+    else{
+        position = position + tide*2.5;
+    }
 
     //wave movement
     position.setComponent(1, position.getComponent(1)+sin((timeStep/180.0*3.141600))/150.0);
