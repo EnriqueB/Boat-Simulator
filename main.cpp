@@ -42,7 +42,7 @@ physVector wind(3, w);
 
 double avgFitness = 0;
 
-bool GUI = true;
+bool GUI = false;
 
 int runIndex =0;
 
