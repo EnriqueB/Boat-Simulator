@@ -13,9 +13,9 @@
 #define FPS 60.0
 
 #define RUN_SIZE 50
-#define POPULATION_SIZE 100
+#define POPULATION_SIZE 1000
 #define TOURNAMENT_SIZE 5
-#define GENERATIONS 20
+#define GENERATIONS 100
 #define XOVER_RATE 0.9
 
 using namespace std;
@@ -625,7 +625,7 @@ void advancedMovement(int boatIndex){
         targetIndex=(++targetIndex%2);
         boats[boatIndex].setTargetIndex(targetIndex);
     }
-    if(angleDifference >=35.0){
+    if(angleDifference >=35.0 && vectToTarget.getMagnitude() < 25){
         tackStatus = 0;
         //boat can sail towards target
         chaseTarget(boatIndex);
@@ -711,9 +711,6 @@ static void display(void){
 
     //60 FPS
     if(diff.count() >  1.0/FPS){
-        if(timeStep%10000==0){
-            cout<<"Here\n";
-        }
         if(GUI){
             glMatrixMode (GL_PROJECTION);
             glLoadIdentity ();
@@ -758,7 +755,7 @@ static void display(void){
             }
         }
         for(int i =0; i<boats.size(); i++){
-            if(timeStep%1000==0)    cout<<"Boat: " <<i/4<<" With pilot: "<<boats[i].getPilot()<<endl;
+            //if(timeStep%10000==0)    cout<<"Boat: " <<i/4<<" With pilot: "<<boats[i].getPilot()<<endl;
             //move and draw boats
             if(i<boats.size()-1)
                advancedMovement(i);
@@ -926,13 +923,13 @@ int main(int argc, char *argv[]){
             pilot[j] = generateOffspring();
             for(int l=0; l<4; l++){
                 boats[l+(j*4)].setPilot(pilot[j]);
-                cout<<"Boat: "<<l+(j*4)<<" Pilot: "<<pilot[j]<<" BoatPilot: "<<boats[l+j].getPilot()<<endl;
+                //cout<<"Boat: "<<l+(j*4)<<" Pilot: "<<pilot[j]<<" BoatPilot: "<<boats[l+(j*4)].getPilot()<<endl;
             }
-            
+            /*
         cout<<pilot[j]<<" Fitness: "<<individuals[pilot[j]].fitness<<" Iterations: "<<individuals[pilot[j]].iterations<<endl;
         cout<<"MinAngle: "<<individuals[pilot[j]].parameters[0]<<" MaxAngle: "<<individuals[pilot[j]].parameters[1]<<" AngleStep: "<<individuals[pilot[j]].parameters[2]<<endl;
         cout<<"MinTack: "<<individuals[pilot[j]].parameters[3]<<" MaxTack: "<<individuals[pilot[j]].parameters[4]<<" TackStep: "<<individuals[pilot[j]].parameters[5]<<endl<<endl;
-            
+            */
         }
         //finished generating offspring
         cout<<"Finished generating offspring\n";

@@ -169,6 +169,8 @@ double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
     if(angleStep<=0)        angleStep = 1;
     if(tackStep<=0)         tackStep = 1;
 
+    tackTimer = 0;
+
     double leewayForce=0;
     iterations = 0;
     double bestMagnitude = DBL_MAX;
