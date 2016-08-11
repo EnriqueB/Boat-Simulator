@@ -758,7 +758,7 @@ static void display(void){
             }
         }
         for(int i =0; i<boats.size(); i++){
-            cout<<"Boat: " <<i/4<<" With pilot: "<<boats[i].getPilot()<<endl;
+            if(timeStep%1000==0)    cout<<"Boat: " <<i/4<<" With pilot: "<<boats[i].getPilot()<<endl;
             //move and draw boats
             if(i<boats.size()-1)
                advancedMovement(i);
@@ -925,8 +925,8 @@ int main(int argc, char *argv[]){
         for(int j =0; j<RUN_SIZE; j++){
             pilot[j] = generateOffspring();
             for(int l=0; l<4; l++){
-                boats[l+j].setPilot(pilot[j]);
-                cout<<"Boat: "<<l+j<<" Pilot: "<<pilot[j]<<" BoatPilot: "<<boats[l+j].getPilot()<<endl;
+                boats[l+(j*4)].setPilot(pilot[j]);
+                cout<<"Boat: "<<l+(j*4)<<" Pilot: "<<pilot[j]<<" BoatPilot: "<<boats[l+j].getPilot()<<endl;
             }
             
         cout<<pilot[j]<<" Fitness: "<<individuals[pilot[j]].fitness<<" Iterations: "<<individuals[pilot[j]].iterations<<endl;
