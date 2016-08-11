@@ -41,7 +41,7 @@ physVector wind(3, w);
 
 double avgFitness = 0;
 
-bool GUI = false;
+bool GUI = true;
 
 int runIndex =0;
 
@@ -104,7 +104,7 @@ vector <INDIVIDUAL> individuals(POPULATION_SIZE);
 
 /*
  * The genetic algorithm uses tournament selection.
- * The parameter type determines the type of 
+ * The parameter type determines the type of
  * tournament, true for normal, false for negative
  */
 int tournament(bool type){
@@ -149,9 +149,9 @@ INDIVIDUAL crossOver(int p1, int p2){
 INDIVIDUAL mutate(int parent){
     INDIVIDUAL ind;
     double random;
-    
+
     //A different sigma is used for angles and tacks
-    double sigmaAngle = 10; 
+    double sigmaAngle = 10;
     double sigmaTack = 100;
     for(int i =0; i<3; i++){
         do{ //parameters cannot be negative
@@ -223,6 +223,7 @@ void initVectors(int ammountIndividuals){
     timeStep=0;
     physVector pos;
     boats.clear();
+    tide.setComponent(2, -0.0005);
 
     //generate random original positions
     double x, y, ang;
@@ -238,12 +239,12 @@ void initVectors(int ammountIndividuals){
             ang = (double)rand()/RAND_MAX;
             ang*=360.0;
         */
-            boat b(0.0, 0.0, 270.0, sailingPoints[j], speedPoints[j], i+(50*runIndex));
+            boat b(wind, tide, 0.0, 0.0, 270.0, sailingPoints[j], speedPoints[j], i+(50*runIndex), 5.0);
             boats.push_back(b);
         }
     }
 
-    boat base(0.0, 0.0, 270.0, sailingPoints[1], speedPoints[0], 0);
+    boat base(wind, tide, 0.0, 0.0, 270.0, sailingPoints[1], speedPoints[0], 0, 5.0);
     boats.push_back(base);
 
 
@@ -254,7 +255,6 @@ void initVectors(int ammountIndividuals){
     tide.setComponent(1, 0);
     */
     //tide.setComponent(0, 0);
-    tide.setComponent(2, -0.0005);
     //generate targets
     /*
     for(int i=0; i<2; i++){
@@ -286,7 +286,7 @@ void initVectors(int ammountIndividuals){
     */
 }
 
-    
+
 void changeSize(int w, int h){
 // Prevent a divide by zero, when window is too short
 // (you cant make a window of zero width).
@@ -402,7 +402,7 @@ void chaseTarget(int boatIndex){
 }
 
 /*
- * This method implements basic tacking. 
+ * This method implements basic tacking.
  */
 void baseTacking(int boatIndex){
     /*
@@ -544,7 +544,7 @@ void tackManager(int boatIndex){
         int minTack = individuals[pilot].parameters[3];
         int maxTack = individuals[pilot].parameters[4];
         int tackStep = individuals[pilot].parameters[5];
-        tackAngle = boats[boatIndex].bestAngle(wind, tide, minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], iterations, bestTack);
+        tackAngle = boats[boatIndex].bestAngle(minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], iterations, bestTack);
         individuals[pilot].iterations = iterations;
         tackLimit = bestTack;
         tackStatus = 1;
@@ -750,7 +750,7 @@ static void display(void){
             else
                 ruleSet(i);
 
-            boats[i].moveBoat(wind, tide, timeStep);
+            boats[i].moveBoat(timeStep);
             if(GUI) drawBoat(i);
         }
         if(GUI) glutSwapBuffers();
@@ -875,7 +875,7 @@ int main(int argc, char *argv[]){
 
     double maxFitness = 0;
     int maxIndex =0;
-    for(; runIndex<2; runIndex++){
+    for(; runIndex<(POPULATION_SIZE/50); runIndex++){
         initVectors(50);
         if(GUI) initAndRun(argc, argv);
         else{
@@ -884,7 +884,7 @@ int main(int argc, char *argv[]){
                 display();
             }
         }
-        for(int i=0; i<50; i++){
+        for(int i=0; i<1; i++){
             double fitness = 0;
             for(int j=0; j<4; j++){
                 fitness+=(boats[i+j].getLoopCount()*10);

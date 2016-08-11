@@ -14,6 +14,8 @@ class boat{
 
     private:
         physVector position;
+        physVector wind;
+        physVector tide;
         double rudder;
         double sail;
     	battery bat;
@@ -22,6 +24,7 @@ class boat{
         double angle_sailingPoints[3];
         double speed_sailingPoints[3];
         double tackAngle;
+        double leeway;
         int tackTimer;
         int tackLimit;
         int tackStatus;
@@ -31,7 +34,8 @@ class boat{
 
     public:
        boat();
-        boat(double x, double y, double dir, double angles[], double speeds[], int ind);
+        boat(physVector w, physVector t, double x, double y, double dir,
+                double angles[], double speeds[], int indi, double lw);
 
         //setters
         void setPosition(physVector pos) { position = pos; }
@@ -45,6 +49,7 @@ class boat{
         void setTackStatus(int t) { tackStatus = t; }
         void setLastLoop(long long l) { lastLoop = l; }
         void setPilot(int i) { pilot = i; }
+        void setLeeway(double l) { leeway = l; }
 
         //getters
         physVector getPosition() { return position; }
@@ -60,13 +65,14 @@ class boat{
         int getLoopCount() { return loopCount; }
         long long getLastLoop() { return lastLoop; }
         int getPilot() { return pilot; }
+        double getLeeway() { return leeway; }
 
         void completedLoop() { loopCount++; }
 
-        void moveBoat(physVector wind, physVector tide, long long timeStep);
-        double bestAngle(physVector wind, physVector tide, int minAngle, int maxAngle,
-                int angleStep, int minTack, int maxTack, int tackStep, physVector target,
-                int &iterations, int &bestTack);
+        void moveBoat(long long timeStep);
+        double bestAngle(int minAngle, int maxAngle, int angleStep,
+                        int minTack, int maxTack, int tackStep, physVector target,
+                        int &iterations, int &bestTack);
 };
 
 boat::boat(){
@@ -82,9 +88,13 @@ boat::boat(){
     tackStatus = 0;
     loopCount = 0;
     lastLoop = 0;
+    leeway = 0;
 }
 
-boat::boat(double x, double y, double dir, double angles[], double speeds[], int ind){
+boat::boat(physVector w, physVector t, double x, double y, double dir, double angles[], double speeds[], int ind, double lw){
+    wind = w;
+    tide = t;
+
     position.setComponent(0, x);
     position.setComponent(2, y);
     position.setComponent(1, 0);
@@ -106,6 +116,7 @@ boat::boat(double x, double y, double dir, double angles[], double speeds[], int
     loopCount = 0;
     lastLoop = 0;
     pilot = ind;
+    leeway = lw;
 }
 
 void boat::setRudder(double r){
@@ -139,8 +150,8 @@ void boat::setTackAngle(double t){
     }
 }
 
-double boat::bestAngle(physVector wind, physVector tide, int minAngle, int maxAngle,
-                int angleStep, int minTack, int maxTack, int tackStep, physVector target,
+double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
+                int minTack, int maxTack, int tackStep, physVector target,
                 int &iterations, int &bestTack){
 
 
@@ -158,6 +169,7 @@ double boat::bestAngle(physVector wind, physVector tide, int minAngle, int maxAn
     if(angleStep<=0)        angleStep = 1;
     if(tackStep<=0)         tackStep = 1;
 
+    double leewayForce=0;
     iterations = 0;
     double bestMagnitude = DBL_MAX;
     double bestAng = -1;
@@ -175,20 +187,24 @@ double boat::bestAngle(physVector wind, physVector tide, int minAngle, int maxAn
         if (BoatWindAngle <= angle_sailingPoints[0]){
             //no go zone
             speed = 0.10;
+            leewayForce = 0.3;
         }
         else if(BoatWindAngle > angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
             double m = (speed_sailingPoints[1]-speed_sailingPoints[1])/(angle_sailingPoints[1]-angle_sailingPoints[0]);
             double b = speed_sailingPoints[0] - m*angle_sailingPoints[0];
             speed = m* BoatWindAngle + b;
+            leewayForce = 1-speed+0.15;
         }
         else if(BoatWindAngle > angle_sailingPoints[1] && BoatWindAngle <=angle_sailingPoints[2]){
             speed = speed_sailingPoints[1];
+            leewayForce = 0.3;
         }
 
         else if(BoatWindAngle > angle_sailingPoints[2]){
             double m = (speed_sailingPoints[2]-speed_sailingPoints[1])/(180-angle_sailingPoints[2]);
             double b = speed_sailingPoints[1] - m*angle_sailingPoints[2];
             speed = m*BoatWindAngle+b;
+            leewayForce = 0.1;
         }
         speed *= wind.getMagnitude()/FPS;
         physVector directionVector(3);
@@ -196,10 +212,54 @@ double boat::bestAngle(physVector wind, physVector tide, int minAngle, int maxAn
         directionVector.setComponent(2, sin((dir/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
         physVector pos;
 
+        physVector leewayVector(3);
+        leewayVector.setComponent(0, -1*directionVector.getComponent(2));
+        leewayVector.setComponent(2, directionVector.getComponent(0));
+
+        int side = directionVector|(wind*-1);
+
+        if(side==-1){
+            //direction is to the left
+            leewayVector = leewayVector*-1.0;
+        }
+        leewayVector = (leewayVector * (leewayForce * leeway))*0.005;
+
         for(int tack = minTack; tack<maxTack; tack+=tackStep){
             pos = position;
             pos = pos + directionVector*((double)tack);
-            pos = pos + tide*((double)tack);
+            pos = pos + leewayVector*((double)tack);
+
+            //check for tide along the path
+            //tide is stronger in deep waters (negative x coordinates)
+            double origX = position.getComponent(0);
+            double movementX = (directionVector.getComponent(0));
+            double x = (-1*origX)/movementX;
+            int timeDeepWaters = 0;
+            if(origX <0){
+                //original position is in deep waters
+                if(x>tack || x < 0){
+                    //boat never reaches shallow waters
+                    timeDeepWaters = tack;
+                }
+                else{
+                    //boat reaches shallow waters
+                    timeDeepWaters = (int)x;
+                }
+            }
+            else{
+                //original position is in shallow waters
+                if(x>tack || x< 0){
+                    //boat never reaches deep waters
+                    timeDeepWaters = 0;
+                }
+                else{
+                    //boat reaches deep waters
+                    timeDeepWaters = tack-x;
+                }
+            }
+
+            pos = pos + (tide*2)*((double)timeDeepWaters) + tide*((double)tack-timeDeepWaters);
+
             physVector vectToTarget = target-pos;
             double magnitude = vectToTarget.getMagnitude();
 
@@ -217,11 +277,9 @@ double boat::bestAngle(physVector wind, physVector tide, int minAngle, int maxAn
     return bestAng;
 }
 
-void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
+void boat::moveBoat(long long timeStep){
     position = position + tide;
-    //leeway, depends on boat
-
-
+    double leewayForce=0;
     //direction going
 
     //get angle of wind
@@ -238,20 +296,24 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     if (BoatWindAngle < angle_sailingPoints[0]){
         //no go zone
         speed = 0.10;
+        leewayForce = 0.3;
     }
     else if(BoatWindAngle >= angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
         double m = (speed_sailingPoints[1]-speed_sailingPoints[0])/(angle_sailingPoints[1]-angle_sailingPoints[0]);
         double b = speed_sailingPoints[0] - m*angle_sailingPoints[0];
         speed = m* BoatWindAngle + b;
+        leewayForce = 1-speed+0.15;
     }
     else if(BoatWindAngle > angle_sailingPoints[1] && BoatWindAngle <=angle_sailingPoints[2]){
         speed = speed_sailingPoints[1];
+        leewayForce = 0.3;
     }
 
     else if(BoatWindAngle > angle_sailingPoints[2]){
         double m = (speed_sailingPoints[2]-speed_sailingPoints[1])/(180.0-angle_sailingPoints[2]);
         double b = speed_sailingPoints[1] - m*angle_sailingPoints[2];
         speed = m*BoatWindAngle+b;
+        leewayForce = 0.1;
     }
     speed *= wind.getMagnitude()/FPS;
     speed*=sail;
@@ -274,9 +336,22 @@ void boat::moveBoat(physVector wind, physVector tide, long long timeStep){
     directionVector.setComponent(2, sin((direction/180.0)*M_PI)*speed); //Z axis has positive values towards viewer
 
     position = position + (directionVector);
-    if(timeStep%300==0){
-       // std::cout<<"Rudder: "<<rudder<<" Direction: "<<direction<<" Speed: "<<speed<<" BoatWingAngle: "<<BoatWindAngle<<"\n";
+
+    //leeway:
+    //boat is moved sideways due to air force
+    physVector leewayVector(3);
+    leewayVector.setComponent(0, -1*directionVector.getComponent(2));
+    leewayVector.setComponent(2, directionVector.getComponent(0));
+
+    int side = directionVector|(wind*-1);
+
+    if(side==-1){
+        //direction is to the left
+        leewayVector = leewayVector*-1.0;
     }
+    leewayVector = (leewayVector * (leewayForce * leeway))*0.005;
+    position = position + leewayVector;
+
     //wave movement
     position.setComponent(1, position.getComponent(1)+sin((timeStep/180.0*3.141600))/150.0);
 }
