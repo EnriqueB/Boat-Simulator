@@ -13,7 +13,7 @@
 #define FPS 60.0
 
 #define RUN_SIZE 50
-#define POPULATION_SIZE 1000
+#define POPULATION_SIZE 100
 #define TOURNAMENT_SIZE 5
 #define GENERATIONS 20
 #define XOVER_RATE 0.9
@@ -42,7 +42,7 @@ physVector wind(3, w);
 
 double avgFitness = 0;
 
-bool GUI = false;
+bool GUI = true;
 
 int runIndex =0;
 
@@ -68,7 +68,7 @@ bool usedSrand = false;
 struct INDIVIDUAL{
     int iterations;
     int loops;
-    double fitness=-1;
+    double fitness=0;
     /*
      * 0: minAngle
      * 1: maxAngle
@@ -84,7 +84,7 @@ struct INDIVIDUAL{
             srand(time(NULL));
             usedSrand = true;
         }
-        fitness = 0;
+        fitness = -1;
         iterations = 0;
         loops=0;
         parameters[0] = rand()%180;
@@ -177,6 +177,8 @@ INDIVIDUAL mutate(int parent){
         random = ((double)rand()/RAND_MAX);
         random = -1.0 + random*2.0;
         ind.parameters[3] = individuals[parent].parameters[3]+sigmaTack*random;
+        random = ((double)rand()/RAND_MAX);
+        random = -1.0 + random*2.0;
         ind.parameters[4] = individuals[parent].parameters[4]+sigmaTack*random;
     }
     do{ //parameters cannot be negative
@@ -709,6 +711,9 @@ static void display(void){
 
     //60 FPS
     if(diff.count() >  1.0/FPS){
+        if(timeStep%10000==0){
+            cout<<"Here\n";
+        }
         if(GUI){
             glMatrixMode (GL_PROJECTION);
             glLoadIdentity ();
@@ -753,6 +758,7 @@ static void display(void){
             }
         }
         for(int i =0; i<boats.size(); i++){
+            cout<<"Boat: " <<i/4<<" With pilot: "<<boats[i].getPilot()<<endl;
             //move and draw boats
             if(i<boats.size()-1)
                advancedMovement(i);
@@ -853,7 +859,7 @@ void initAndRun(int argc, char *argv[]){
  void printIndividualsToFile(){
     FILE *fileHandler;
     fileHandler = fopen("individuals.txt", "w");
-    fprintf(fileHandler, "Ind#\tFitness\tIterations\tLoops\tParameters\n");
+    fprintf(fileHandler, "Ind#\t\tFitness\t\tIterations\t\tLoops\t\tParameters\n");
     for(int i=0; i<POPULATION_SIZE; i++){
         fprintf(fileHandler, "%d\t\t%f\t\t%d\t\t%d", i, individuals[i].fitness, individuals[i].iterations, individuals[i].loops);
         for(int j =0; j<6; j++){
@@ -919,9 +925,18 @@ int main(int argc, char *argv[]){
         for(int j =0; j<RUN_SIZE; j++){
             pilot[j] = generateOffspring();
             for(int l=0; l<4; l++){
-                boats[l].setPilot(pilot[j]);
+                boats[l+j].setPilot(pilot[j]);
+
             }
+            
+        cout<<pilot[j]<<" Fitness: "<<individuals[pilot[j]].fitness<<" Iterations: "<<individuals[pilot[j]].iterations<<endl;
+        cout<<"MinAngle: "<<individuals[pilot[j]].parameters[0]<<" MaxAngle: "<<individuals[pilot[j]].parameters[1]<<" AngleStep: "<<individuals[pilot[j]].parameters[2]<<endl;
+        cout<<"MinTack: "<<individuals[pilot[j]].parameters[3]<<" MaxTack: "<<individuals[pilot[j]].parameters[4]<<" TackStep: "<<individuals[pilot[j]].parameters[5]<<endl<<endl;
+            
         }
+        //finished generating offspring
+        cout<<"Finished generating offspring\n";
+        //cout<<"boatsSize: "<<boats.size()<<endl;
         if(GUI) initAndRun(argc, argv);
         else{
             while(timeStep <=10800){
