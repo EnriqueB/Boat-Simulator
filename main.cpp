@@ -12,9 +12,10 @@
 
 #define FPS 60.0
 
-#define POPULATION_SIZE 100
+#define RUN_SIZE 50
+#define POPULATION_SIZE 1000
 #define TOURNAMENT_SIZE 5
-#define GENERATIONS 5
+#define GENERATIONS 20
 #define XOVER_RATE 0.9
 
 using namespace std;
@@ -41,7 +42,7 @@ physVector wind(3, w);
 
 double avgFitness = 0;
 
-bool GUI = true;
+bool GUI = false;
 
 int runIndex =0;
 
@@ -67,7 +68,7 @@ bool usedSrand = false;
 struct INDIVIDUAL{
     int iterations;
     int loops;
-    double fitness;
+    double fitness=-1;
     /*
      * 0: minAngle
      * 1: maxAngle
@@ -113,6 +114,10 @@ int tournament(bool type){
 	int index = 0;
 	for (int i = 0; i < TOURNAMENT_SIZE; i++) {
 		int ind = rand() % POPULATION_SIZE;
+        if(individuals[ind].fitness == -1){
+            i--;
+            continue;
+        }
 		if ((individuals[ind].fitness> fitness)==type) {  //check tournament type
 			fitness = individuals[ind].fitness;
 			index = ind;
@@ -239,7 +244,7 @@ void initVectors(int ammountIndividuals){
             ang = (double)rand()/RAND_MAX;
             ang*=360.0;
         */
-            boat b(wind, tide, 0.0, 0.0, 270.0, sailingPoints[j], speedPoints[j], i+(50*runIndex), 5.0);
+            boat b(wind, tide, 0.0, 0.0, 270.0, sailingPoints[j], speedPoints[j], i+(RUN_SIZE*runIndex), 5.0);
             boats.push_back(b);
         }
     }
@@ -602,6 +607,7 @@ void advancedMovement(int boatIndex){
     if(vectToTarget.getMagnitude()<3.0){
         //reached target, move to next;
         if(targetIndex==0){
+            /*
             int loopCount = boats[boatIndex].getLoopCount();
             cout<<"************************\n";
             cout<<"Boat: "<<boatIndex<<" ";
@@ -610,7 +616,10 @@ void advancedMovement(int boatIndex){
             cout<<"************************\n";
             boats[boatIndex].completedLoop();
             boats[boatIndex].setLastLoop(timeStep);
+            */
         }
+        boats[boatIndex].completedLoop();
+        boats[boatIndex].setLastLoop(timeStep);
         targetIndex=(++targetIndex%2);
         boats[boatIndex].setTargetIndex(targetIndex);
     }
@@ -692,7 +701,7 @@ void ruleSet(int boatIndex){
 }
 
 static void display(void){
-    if(timeStep >= 18000){
+    if(timeStep >= 10800){
         if(GUI) glutLeaveMainLoop();
     }
     auto now = chrono::steady_clock::now();
@@ -875,26 +884,27 @@ int main(int argc, char *argv[]){
 
     double maxFitness = 0;
     int maxIndex =0;
-    for(; runIndex<(POPULATION_SIZE/50); runIndex++){
-        initVectors(50);
+    for(; runIndex<(POPULATION_SIZE/RUN_SIZE); runIndex++){
+        cout<<"Run: "<<runIndex<<endl;
+        initVectors(RUN_SIZE);
         if(GUI) initAndRun(argc, argv);
         else{
             timeStep = 0;
-            while(timeStep <=18000){
+            while(timeStep <=10800){
                 display();
             }
         }
-        for(int i=0; i<1; i++){
+        for(int i=0; i<RUN_SIZE; i++){
             double fitness = 0;
             for(int j=0; j<4; j++){
                 fitness+=(boats[i+j].getLoopCount()*10);
             }
-            individuals[i+runIndex*50].loops = fitness/10;
-            individuals[i+runIndex*50].fitness = fitness/4.0 - 0.001*((double)individuals[i].iterations);
-            avgFitness+=individuals[i+runIndex*50].fitness;
-            if(individuals[i+runIndex*50].fitness > maxFitness){
-                maxIndex = i+runIndex*50;
-                maxFitness = individuals[i+runIndex*50].fitness;
+            individuals[i+runIndex*RUN_SIZE].loops = fitness/10;
+            individuals[i+runIndex*RUN_SIZE].fitness = fitness/4.0 - 0.001*((double)individuals[i].iterations);
+            avgFitness+=individuals[i+runIndex*RUN_SIZE].fitness;
+            if(individuals[i+runIndex*RUN_SIZE].fitness > maxFitness){
+                maxIndex = i+runIndex*RUN_SIZE;
+                maxFitness = individuals[i+runIndex*RUN_SIZE].fitness;
             }
         }
     }
@@ -902,30 +912,36 @@ int main(int argc, char *argv[]){
     printIndividualsToFile();
     FILE *fp;
     for(int i=0; i<GENERATIONS; i++){
+        cout<<"Generation: "<<i<<endl;
         //generate offspring
-        int pilot = generateOffspring();
-        initVectors(1);
-        for(int j=0; j<4; j++){
-            boats[j].setPilot(pilot);
+        initVectors(RUN_SIZE);
+        int pilot[RUN_SIZE];
+        for(int j =0; j<RUN_SIZE; j++){
+            pilot[j] = generateOffspring();
+            for(int l=0; l<4; l++){
+                boats[l].setPilot(pilot[j]);
+            }
         }
         if(GUI) initAndRun(argc, argv);
         else{
-            while(timeStep <=18000){
+            while(timeStep <=10800){
                 display();
             }
         }
         //checkFitness
-        double fitness = 0;
-        for(int j=0; j<4; j++){
-            fitness += (boats[j].getLoopCount()*10);
+        for(int l =0; l<RUN_SIZE; l++){
+            double fitness = 0;
+            for(int j=0; j<4; j++){
+                fitness += (boats[l+j].getLoopCount()*10);
+            }
+            individuals[pilot[l]].fitness = fitness/4.0 - 0.01*((double)individuals[pilot[l]].iterations);
+            if(individuals[pilot[l]].fitness>maxFitness){
+                maxIndex = pilot[l];
+                maxFitness = individuals[pilot[l]].fitness;
+                cout<<"MaxFitness: "<<maxFitness<<endl;
+            }
+            avgFitness = avgFitness + individuals[pilot[l]].fitness/((double)POPULATION_SIZE);
         }
-        individuals[pilot].fitness = fitness/4.0 - 0.001*((double)individuals[i].iterations);
-        if(individuals[pilot].fitness>maxFitness){
-            maxIndex = pilot;
-            maxFitness = individuals[pilot].fitness;
-            cout<<"MaxFitness: "<<maxFitness<<endl;
-        }
-        avgFitness = avgFitness + individuals[pilot].fitness/((double)POPULATION_SIZE);
         fp = fopen("generations.txt", "a");
         fprintf(fp, "Generation: %d, MaxFitness: %f, AVGFitness: %f\n", i, maxFitness, avgFitness);
         fclose(fp);
