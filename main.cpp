@@ -15,9 +15,9 @@
 #define FPS 60.0
 
 #define RUN_SIZE 50
-#define POPULATION_SIZE 100
+#define POPULATION_SIZE 1000
 #define TOURNAMENT_SIZE 5
-#define GENERATIONS 200
+#define GENERATIONS 400
 #define XOVER_RATE 0.9
 
 using namespace std;
