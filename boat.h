@@ -155,7 +155,10 @@ double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
                 long long &iterations, int &bestTack){
 
 
-    if(minAngle < 0.0)     minAngle = 360.0 + minAngle;
+    if(minAngle < 0.0){
+        minAngle = 360.0 + minAngle;
+        maxAngle += 360.0;
+    }
     //if(maxAngle >= 360.0)   maxAngle = maxAngle - 360.0;
 
     if(minTack <0)          minTack = 0;
@@ -276,6 +279,10 @@ double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
     }
     tackLimit = bestTack;
     tackAngle = bestAng;
+    if(iterations == 0){
+        std::cout<<"MinAngle: "<<minAngle<<" maxAngle: "<<maxAngle<<" AngleStep: "<<angleStep;
+        std::cout<<" MinTack: "<<minTack<<" maxTack: "<<maxTack<<" tackSte: "<<tackStep<<std::endl;
+    }
     return bestAng;
 }
 

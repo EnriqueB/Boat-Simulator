@@ -555,7 +555,12 @@ void tackManager(int boatIndex){
         int tackStep = individuals[pilot].parameters[5];
         tackAngle = boats[boatIndex].bestAngle(minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], it, bestTack);
         individuals[pilot].iterations = it;
-        cout<<"Boat: "<<boatIndex<<" BoatPilot: "<<pilot<<" Other pilot: "<<boats[boatIndex].getPilot()<<" Iterations: "<<it<<endl; 
+        //cout<<"Boat: "<<boatIndex<<" BoatPilot: "<<pilot<<" Other pilot: "<<boats[boatIndex].getPilot()<<" Iterations: "<<it<<endl; 
+        if(it == 0){
+        cout<<"MinAngle: "<<minAngle<<" maxAngle: "<<maxAngle<<" AngleStep: "<<angleStep;
+        cout<<" MinTack: "<<minTack<<" maxTack: "<<maxTack<<" tackSte: "<<tackStep<<endl;
+        }
+
         tackLimit = bestTack;
         tackStatus = 1;
     }
@@ -909,7 +914,7 @@ int main(int argc, char *argv[]){
                 fitness+=(boats[i+j].getLoopCount()*10);
             }
             individuals[i+runIndex*RUN_SIZE].loops = fitness/10;
-            individuals[i+runIndex*RUN_SIZE].fitness = fitness/4.0 - 0.001*((double)individuals[i].iterations);
+            individuals[i+runIndex*RUN_SIZE].fitness = fitness/4.0 - 0.01*((double)individuals[i+runIndex*RUN_SIZE].iterations);
             avgFitness+=individuals[i+runIndex*RUN_SIZE].fitness;
             if(individuals[i+runIndex*RUN_SIZE].fitness > maxFitness){
                 maxIndex = i+runIndex*RUN_SIZE;
