@@ -72,7 +72,7 @@ class boat{
         void moveBoat(long long timeStep);
         double bestAngle(int minAngle, int maxAngle, int angleStep,
                         int minTack, int maxTack, int tackStep, physVector target,
-                        int &iterations, int &bestTack);
+                        long long &iterations, int &bestTack);
 };
 
 boat::boat(){
@@ -152,7 +152,7 @@ void boat::setTackAngle(double t){
 
 double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
                 int minTack, int maxTack, int tackStep, physVector target,
-                int &iterations, int &bestTack){
+                long long &iterations, int &bestTack){
 
 
     if(minAngle < 0.0)     minAngle = 360.0 + minAngle;

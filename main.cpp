@@ -15,7 +15,7 @@
 #define RUN_SIZE 50
 #define POPULATION_SIZE 1000
 #define TOURNAMENT_SIZE 5
-#define GENERATIONS 100
+#define GENERATIONS 200
 #define XOVER_RATE 0.9
 
 using namespace std;
@@ -66,7 +66,7 @@ bool usedSrand = false;
  * genetic algorithm system.
  */
 struct INDIVIDUAL{
-    int iterations;
+    long long iterations;
     int loops;
     double fitness=0;
     /*
@@ -541,7 +541,7 @@ void tackManager(int boatIndex){
 
     if(tackStatus == 0){
         //obtain side
-        int iterations = 0;
+        long long iterations = 0;
         int bestTack = 0;
         double targetAngle = (targets[targetIndex])%north;
         int pilot = boats[boatIndex].getPilot();
@@ -946,6 +946,7 @@ int main(int argc, char *argv[]){
             for(int j=0; j<4; j++){
                 fitness += (boats[l+j].getLoopCount()*10);
             }
+            individuals[pilot[l]].loops = fitness/10;
             individuals[pilot[l]].fitness = fitness/4.0 - 0.01*((double)individuals[pilot[l]].iterations);
             if(individuals[pilot[l]].fitness>maxFitness){
                 maxIndex = pilot[l];
