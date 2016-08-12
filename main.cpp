@@ -9,11 +9,13 @@
 #include <cmath>
 #include <vector>
 #include <stdio.h>
+#include <sstream>
+#include <string.h>
 
 #define FPS 60.0
 
 #define RUN_SIZE 50
-#define POPULATION_SIZE 1000
+#define POPULATION_SIZE 100
 #define TOURNAMENT_SIZE 5
 #define GENERATIONS 200
 #define XOVER_RATE 0.9
@@ -541,7 +543,7 @@ void tackManager(int boatIndex){
 
     if(tackStatus == 0){
         //obtain side
-        long long iterations = 0;
+        long long it = 0;
         int bestTack = 0;
         double targetAngle = (targets[targetIndex])%north;
         int pilot = boats[boatIndex].getPilot();
@@ -551,8 +553,9 @@ void tackManager(int boatIndex){
         int minTack = individuals[pilot].parameters[3];
         int maxTack = individuals[pilot].parameters[4];
         int tackStep = individuals[pilot].parameters[5];
-        tackAngle = boats[boatIndex].bestAngle(minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], iterations, bestTack);
-        individuals[pilot].iterations = iterations;
+        tackAngle = boats[boatIndex].bestAngle(minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], it, bestTack);
+        individuals[pilot].iterations = it;
+        cout<<"Boat: "<<boatIndex<<" BoatPilot: "<<pilot<<" Other pilot: "<<boats[boatIndex].getPilot()<<" Iterations: "<<it<<endl; 
         tackLimit = bestTack;
         tackStatus = 1;
     }
@@ -853,9 +856,12 @@ void initAndRun(int argc, char *argv[]){
 }
 
  //Program entry point
- void printIndividualsToFile(){
+ void printIndividualsToFile(int c){
+    ostringstream strs;
+	strs << c;
+    string file = "individuals"+strs.str()+".txt";
     FILE *fileHandler;
-    fileHandler = fopen("individuals.txt", "w");
+    fileHandler = fopen(file.c_str(), "w");
     fprintf(fileHandler, "Ind#\t\tFitness\t\tIterations\t\tLoops\t\tParameters\n");
     for(int i=0; i<POPULATION_SIZE; i++){
         fprintf(fileHandler, "%d\t\t%f\t\t%d\t\t%d", i, individuals[i].fitness, individuals[i].iterations, individuals[i].loops);
@@ -912,7 +918,7 @@ int main(int argc, char *argv[]){
         }
     }
     avgFitness = avgFitness/((double)POPULATION_SIZE);
-    printIndividualsToFile();
+    printIndividualsToFile(0);
     FILE *fp;
     for(int i=0; i<GENERATIONS; i++){
         cout<<"Generation: "<<i<<endl;
@@ -958,7 +964,7 @@ int main(int argc, char *argv[]){
         fp = fopen("generations.txt", "a");
         fprintf(fp, "Generation: %d, MaxFitness: %f, AVGFitness: %f\n", i, maxFitness, avgFitness);
         fclose(fp);
-        printIndividualsToFile();
+        printIndividualsToFile(i+1);
     }
 
     //check fitness
