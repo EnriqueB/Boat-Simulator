@@ -15,10 +15,12 @@
 #define FPS 60.0
 
 #define RUN_SIZE 50
-#define POPULATION_SIZE 1000
+#define POPULATION_SIZE 100
 #define TOURNAMENT_SIZE 5
 #define GENERATIONS 400
 #define XOVER_RATE 0.9
+
+#define GUI false
 
 using namespace std;
 
@@ -44,7 +46,7 @@ physVector wind(3, w);
 
 double avgFitness = 0;
 
-bool GUI = false;
+//bool GUI = false;
 
 int runIndex =0;
 
@@ -93,12 +95,12 @@ struct INDIVIDUAL{
         parameters[1] = rand()%180;
         parameters[2] = rand()%50 + 1;
         parameters[3] = rand()%100 + 1;
-        parameters[4] = rand()%3000 + 1;
+        parameters[4] = rand()%5000 + 1;
         parameters[5] = rand()%100 + 1;
 
         while((parameters[3] > parameters[4]) || (parameters[3] == parameters[4])){
             parameters[3] = rand()%100 +1;
-            parameters[4] = rand()%3000 +1;
+            parameters[4] = rand()%5000 +1;
         }
     }
 };
@@ -112,7 +114,7 @@ vector <INDIVIDUAL> individuals(POPULATION_SIZE);
  */
 int tournament(bool type){
 	double fitness = (double)INT32_MAX;
-    if(type)fitness = 0;
+    if (!type)  fitness = 0;
 	int index = 0;
 	for (int i = 0; i < TOURNAMENT_SIZE; i++) {
 		int ind = rand() % POPULATION_SIZE;
@@ -120,7 +122,7 @@ int tournament(bool type){
             i--;
             continue;
         }
-		if ((individuals[ind].fitness> fitness)==type) {  //check tournament type
+		if ((individuals[ind].fitness < fitness)==type) {  //check tournament type
 			fitness = individuals[ind].fitness;
 			index = ind;
 		}
@@ -349,10 +351,13 @@ void drawBoat(int boatIndex){
         glPopMatrix();
 
         //cloth sail
+        double movX, movZ;
+        movX = 0.5*sin(ang*M_PI/180.0);
+        movZ = 0.5*cos(ang*M_PI/180.0);
         glPushMatrix();
-            glTranslated(pos.getComponent(0)+0.5, pos.getComponent(1)+3.6, pos.getComponent(2));
-            glRotated(ang, 0, 1, 0);
-            glScalef(0.3, 0.9, 1);
+            glTranslated(pos.getComponent(0)+movX, pos.getComponent(1)+3.6, pos.getComponent(2)+movZ);
+            glRotated(ang+90.0, 0, 1, 0);
+            glScalef(1.0, 0.9, 0.3);
             glColor3d(0, 0, 0);
             glutWireCube(0.8);
             if(boatIndex==boats.size()-1) glColor3d(0.0,0.0,0.0);
@@ -361,13 +366,14 @@ void drawBoat(int boatIndex){
         glPopMatrix();
 
         //sphere at the front of the boat
+        movX = 2.4*cos(boats[boatIndex].getDirection()*M_PI/180.0);
+        movZ = 2.4*sin(boats[boatIndex].getDirection()*M_PI/180.0);
         glPushMatrix();
-            glTranslated(pos.getComponent(0), pos.getComponent(1), pos.getComponent(2)+3);
-            glRotated(ang, 0, 1, 0);
+            glTranslated(pos.getComponent(0)+movX, pos.getComponent(1), pos.getComponent(2)+movZ);
             glColor3d(0,0,0);
-            //glutWireSphere(0.5, 20, 3);
-            glColor3d(1, 0, 0);
-            //glutSolidSphere(0.51, 20, 3);
+            glutWireSphere(0.5, 20, 3);
+            glColor3d(0, 0, 0);
+            glutSolidSphere(0.50, 20, 3);
         glPopMatrix();
         glTranslated(0,0,0);
     glPopMatrix();
@@ -616,19 +622,7 @@ void advancedMovement(int boatIndex){
 
     if(vectToTarget.getMagnitude()<3.0){
         //reached target, move to next;
-        if(targetIndex==0){
-            /*
-            int loopCount = boats[boatIndex].getLoopCount();
-            cout<<"************************\n";
-            cout<<"Boat: "<<boatIndex<<" ";
-            cout<<"Loop count: "<<loopCount;
-            cout<<" In: "<<(double)(timeStep-boats[boatIndex].getLastLoop())/FPS<<" seconds\n";
-            cout<<"************************\n";
-            boats[boatIndex].completedLoop();
-            boats[boatIndex].setLastLoop(timeStep);
-            */
-        }
-        boats[boatIndex].completedLoop();
+        boats[boatIndex].completedLoop(timeStep);
         boats[boatIndex].setLastLoop(timeStep);
         targetIndex=(++targetIndex%2);
         boats[boatIndex].setTargetIndex(targetIndex);
@@ -668,16 +662,14 @@ void ruleSet(int boatIndex){
 
     if(vectToTarget.getMagnitude()<3.0){
         //reached target, move to next;
-        if(targetIndex==0){
             int loopCount = boats[boatIndex].getLoopCount();
             cout<<"************************\n";
             cout<<"Boat: "<<boatIndex<<" ";
             cout<<"Loop count: "<<loopCount;
             cout<<" In: "<<(double)(timeStep-boats[boatIndex].getLastLoop())/FPS<<" seconds\n";
             cout<<"************************\n";
-            boats[boatIndex].completedLoop();
+            boats[boatIndex].completedLoop(timeStep);
             boats[boatIndex].setLastLoop(timeStep);
-        }
         targetIndex=(++targetIndex%2);
         boats[boatIndex].setTargetIndex(targetIndex);
     }
@@ -711,7 +703,7 @@ void ruleSet(int boatIndex){
 }
 
 static void display(void){
-    if(timeStep >= 10800){
+    if(timeStep >= 18000){
         if(GUI) glutLeaveMainLoop();
     }
     auto now = chrono::steady_clock::now();
@@ -808,16 +800,16 @@ const GLfloat high_shininess[] = { 100.0f };
 
 void processSpecialKeys(int key, int xx, int yy){
 
-    float fraction = 1.0f;
+    float fraction = 2.0f;
 
     switch (key) {
         case GLUT_KEY_LEFT :
-            angle -= 0.01f;
+            angle -= 0.05f;
             lx = sin(angle);
             lz = -cos(angle);
             break;
         case GLUT_KEY_RIGHT :
-            angle += 0.01f;
+            angle += 0.05f;
             lx = sin(angle);
             lz = -cos(angle);
             break;
@@ -875,6 +867,8 @@ void initAndRun(int argc, char *argv[]){
         }
         fprintf(fileHandler,"\n");
     }
+    fprintf(fileHandler, "Normal Boat-> Finish time: %d\tLoops count: %d", boats[RUN_SIZE*4].getFinishTime(), boats[RUN_SIZE*4].getLoopCount());
+    fprintf(fileHandler,"\n");
     fclose(fileHandler);
  }
 
@@ -896,29 +890,31 @@ int main(int argc, char *argv[]){
     glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
     */
 
-    double maxFitness = 0;
-    int maxIndex =0;
+    double bestFitness = (double)INT32_MAX;
+    int bestIndex =0;
     for(; runIndex<(POPULATION_SIZE/RUN_SIZE); runIndex++){
         cout<<"Run: "<<runIndex<<endl;
         initVectors(RUN_SIZE);
         if(GUI) initAndRun(argc, argv);
         else{
             timeStep = 0;
-            while(timeStep <=10800){
+            while(timeStep <=18000){
                 display();
             }
         }
         for(int i=0; i<RUN_SIZE; i++){
             double fitness = 0;
+            int loops = 0;
             for(int j=0; j<4; j++){
-                fitness+=(boats[i+j].getLoopCount()*10);
+                fitness+=boats[i+j].getFinishTime();
+                loops+=boats[i+j].getLoopCount();
             }
-            individuals[i+runIndex*RUN_SIZE].loops = fitness/10;
-            individuals[i+runIndex*RUN_SIZE].fitness = fitness/4.0 - 0.01*((double)individuals[i+runIndex*RUN_SIZE].iterations);
+            individuals[i+runIndex*RUN_SIZE].loops = loops;
+            individuals[i+runIndex*RUN_SIZE].fitness = fitness/4.0 + 0.1*((double)individuals[i+runIndex*RUN_SIZE].iterations) - 5000.0;
             avgFitness+=individuals[i+runIndex*RUN_SIZE].fitness;
-            if(individuals[i+runIndex*RUN_SIZE].fitness > maxFitness){
-                maxIndex = i+runIndex*RUN_SIZE;
-                maxFitness = individuals[i+runIndex*RUN_SIZE].fitness;
+            if(individuals[i+runIndex*RUN_SIZE].fitness < bestFitness){
+                bestIndex = i+runIndex*RUN_SIZE;
+                bestFitness = individuals[i+runIndex*RUN_SIZE].fitness;
             }
         }
     }
@@ -947,27 +943,29 @@ int main(int argc, char *argv[]){
         //cout<<"boatsSize: "<<boats.size()<<endl;
         if(GUI) initAndRun(argc, argv);
         else{
-            while(timeStep <=10800){
+            while(timeStep <=18000){
                 display();
             }
         }
         //checkFitness
         for(int l =0; l<RUN_SIZE; l++){
             double fitness = 0;
+            int loops = 0;
             for(int j=0; j<4; j++){
-                fitness += (boats[l+j].getLoopCount()*10);
+                fitness += boats[l+j].getFinishTime();
+                loops += boats[l+j].getLoopCount();
             }
-            individuals[pilot[l]].loops = fitness/10;
-            individuals[pilot[l]].fitness = fitness/4.0 - 0.01*((double)individuals[pilot[l]].iterations);
-            if(individuals[pilot[l]].fitness>maxFitness){
-                maxIndex = pilot[l];
-                maxFitness = individuals[pilot[l]].fitness;
-                cout<<"MaxFitness: "<<maxFitness<<endl;
+            individuals[pilot[l]].loops = loops;
+            individuals[pilot[l]].fitness = fitness/4.0 + 0.1*((double)individuals[pilot[l]].iterations) - 5000.0;
+            if(individuals[pilot[l]].fitness < bestFitness){
+                bestIndex = pilot[l];
+                bestFitness = individuals[pilot[l]].fitness;
+                cout<<"MaxFitness: "<<bestFitness<<endl;
             }
             avgFitness = avgFitness + individuals[pilot[l]].fitness/((double)POPULATION_SIZE);
         }
         fp = fopen("generations.txt", "a");
-        fprintf(fp, "Generation: %d, MaxFitness: %f, AVGFitness: %f\n", i, maxFitness, avgFitness);
+        fprintf(fp, "Generation: %d, MaxFitness: %f, AVGFitness: %f\n", i, bestFitness, avgFitness);
         fclose(fp);
         printIndividualsToFile(i+1);
     }

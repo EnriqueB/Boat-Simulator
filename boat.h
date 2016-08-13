@@ -31,6 +31,7 @@ class boat{
         int loopCount;
         long long lastLoop;
         int pilot;
+        long long finishTime;
 
     public:
        boat();
@@ -66,8 +67,12 @@ class boat{
         long long getLastLoop() { return lastLoop; }
         int getPilot() { return pilot; }
         double getLeeway() { return leeway; }
+        long long getFinishTime(){ return finishTime; }
 
-        void completedLoop() { loopCount++; }
+        void completedLoop(long long time) { 
+                                loopCount++; 
+                                if(loopCount==4)    finishTime = time;
+                             }
 
         void moveBoat(long long timeStep);
         double bestAngle(int minAngle, int maxAngle, int angleStep,
@@ -89,6 +94,7 @@ boat::boat(){
     loopCount = 0;
     lastLoop = 0;
     leeway = 0;
+    finishTime = 18000;
 }
 
 boat::boat(physVector w, physVector t, double x, double y, double dir, double angles[], double speeds[], int ind, double lw){
@@ -117,6 +123,7 @@ boat::boat(physVector w, physVector t, double x, double y, double dir, double an
     lastLoop = 0;
     pilot = ind;
     leeway = lw;
+    finishTime = 18000;
 }
 
 void boat::setRudder(double r){
