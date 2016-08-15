@@ -14,13 +14,13 @@
 
 #define FPS 60.0
 
-#define RUN_SIZE 50
-#define POPULATION_SIZE 1000
-#define TOURNAMENT_SIZE 5
-#define GENERATIONS 400
-#define XOVER_RATE 0.9
+int RUN_SIZE = 5;
+int POPULATION_SIZE = 100;
+int TOURNAMENT_SIZE = 5;
+int GENERATIONS = 400;
+int XOVER_RATE = 0.9;
 
-#define GUI false
+bool GUI = true;
 
 using namespace std;
 
@@ -38,11 +38,10 @@ float acceleration;
 float accelerationVal;
 
 vector <boat> boats;
-physVector tide(3);
-physVector targets [4];
+physVector tide[4];
+physVector targets [2];
 physVector north(3);
-double w[] = {0.0, 0.0, 10.0};
-physVector wind(3, w);
+physVector wind[4];
 
 double avgFitness = 0;
 
@@ -54,10 +53,11 @@ long long timeStep;
 long long lastLoop = 0;
 double originalHeading;
 
-double sailingPoints[][3] = {{10.0,  85.0, 95.0},
-                                {15.0, 85.0, 95.0},
-                                {20.0, 80.0, 100.0},
-                                {25.0, 85.0, 95.0}};
+//change to 15 to 30
+double sailingPoints[][3] = {{15.0,  85.0, 95.0},
+                                {20.0, 85.0, 95.0},
+                                {25.0, 80.0, 100.0},
+                                {30.0, 85.0, 95.0}};
 double speedPoints[][3] = {{0.3, 0.95, 0.8},
                                 {0.3, 0.95, 0.8},
                                 {0.3, 0.95, 0.8},
@@ -100,7 +100,7 @@ struct INDIVIDUAL{
 
         while((parameters[3] > parameters[4]) || (parameters[3] == parameters[4])){
             parameters[3] = rand()%100 +1;
-            parameters[4] = rand()%5000 +1;
+            parameters[4] = rand()%3000 +1;
         }
     }
 };
@@ -234,50 +234,56 @@ void initVectors(int ammountIndividuals){
     timeStep=0;
     physVector pos;
     boats.clear();
-    tide.setComponent(2, -0.0005);
+
+    wind[0].setComponent(0, 0.0);
+    wind[0].setComponent(1, 0.0);
+    wind[0].setComponent(2, 10.0);
+
+    wind[1].setComponent(0, 0.0);
+    wind[1].setComponent(1, 0.0);
+    wind[1].setComponent(2, -10.0);
+
+    wind[2].setComponent(0, 10.0);
+    wind[2].setComponent(1, 0.0);
+    wind[2].setComponent(2, 0);
+
+    wind[3].setComponent(0, 7.07106);
+    wind[3].setComponent(1, 0.0);
+    wind[3].setComponent(2, 7.07106);
+
+    tide[0].setComponent(0, 0.0);
+    tide[0].setComponent(1, 0.0);
+    tide[0].setComponent(2, -0.0007);
+
+    tide[1].setComponent(0, 0.0);
+    tide[1].setComponent(1, 0.0);
+    tide[1].setComponent(2, 0.0007);
+
+    tide[2].setComponent(0, 0.0007);
+    tide[2].setComponent(1, 0.0);
+    tide[2].setComponent(2, 0.0);
+
+    tide[3].setComponent(0, 0.0004);
+    tide[3].setComponent(1, 0.0);
+    tide[3].setComponent(2, 0.0004);
 
     //generate random original positions
     double x, y, ang;
     for(int i=0; i<ammountIndividuals; i++){
         for(int j=0; j<4; j++){
-        /*
-            x= (double)rand() / RAND_MAX;               //HARDCODED
-            x = -20 + x*40;
-            y=(double)rand()/RAND_MAX;
-            y = -20+y*40;
-            cout<<x<<" "<<y<<endl;
-
-            ang = (double)rand()/RAND_MAX;
-            ang*=360.0;
-        */
-            boat b(wind, tide, 0.0, 0.0, 270.0, sailingPoints[j], speedPoints[j], i+(RUN_SIZE*runIndex), 5.0);
-            boats.push_back(b);
+            for (int z = 0; z<4; z++){
+                for(int k =0; k<4; k++){
+                    boat b(wind[z], tide[k], 0.0, 0.0, 270.0, sailingPoints[j], speedPoints[j], i+(RUN_SIZE*runIndex), 5.0);
+                    boats.push_back(b);
+                }
+            }
         }
     }
 
-    boat base(wind, tide, 0.0, 0.0, 270.0, sailingPoints[1], speedPoints[0], 0, 5.0);
+    boat base(wind[0], tide[0], 0.0, 0.0, 270.0, sailingPoints[1], speedPoints[0], 0, 5.0);
     boats.push_back(base);
 
 
-    //generate tide
-    /*
-    tide.setComponent(0,((double)rand()/RAND_MAX)*.01-0.005);
-    tide.setComponent(2,((double)rand()/RAND_MAX)*.01-0.005);
-    tide.setComponent(1, 0);
-    */
-    //tide.setComponent(0, 0);
-    //generate targets
-    /*
-    for(int i=0; i<2; i++){
-        x = (double)rand()/RAND_MAX;
-        x = -70 + x*140;
-        y = (double)rand()/RAND_MAX;
-        y = -70 + y*140;
-        targets[i].setComponent(0, x);
-        targets[i].setComponent(2, y);
-        targets[i].setComponent(1, 1);
-    }
-    */
     targets[0].setComponent(0,0.0);
     targets[0].setComponent(2,-125.0);
     targets[0].setComponent(1, 0.5);
@@ -285,16 +291,8 @@ void initVectors(int ammountIndividuals){
     targets[1].setComponent(0,0);
     targets[1].setComponent(2,125.0);
     targets[1].setComponent(1,0.5);
-    /*
-    targets[2].setComponent(0, 100);
-    targets[2].setComponent(2, 0);
-    targets[2].setComponent(1, 0.5);
 
-    targets[3].setComponent(0, -100);
-    targets[3].setComponent(2, 0);
-    targets[3].setComponent(1, 0.5);
     north.setComponent(0, 1);
-    */
 }
 
 
@@ -381,8 +379,8 @@ void drawBoat(int boatIndex){
 }
 
 /*
- * Base chasing method. The boat makes a straight
- * line towards the target
+ * Base chasing method. The boat makes a 
+ * straight line towards the target
  */
 void chaseTarget(int boatIndex){
     int targetIndex = boats[boatIndex].getTargetIndex();
@@ -436,7 +434,8 @@ void baseTacking(int boatIndex){
     directionVector.setComponent(0, cos((boats[boatIndex].getDirection()/180.0)*M_PI));
     directionVector.setComponent(2, sin((boats[boatIndex].getDirection()/180.0)*M_PI));
     double angleToTarget = directionVector&vectToTarget;
-    double trueWindAngle = (wind*-1)%north;
+    physVector w = boats[boatIndex].getWind();
+    double trueWindAngle = (w*-1)%north;
     int direction = directionVector|vectToTarget;
 
     if(tackStatus == 0){
@@ -561,12 +560,7 @@ void tackManager(int boatIndex){
         int tackStep = individuals[pilot].parameters[5];
         tackAngle = boats[boatIndex].bestAngle(minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], it, bestTack);
         individuals[pilot].iterations = it;
-        //cout<<"Boat: "<<boatIndex<<" BoatPilot: "<<pilot<<" Other pilot: "<<boats[boatIndex].getPilot()<<" Iterations: "<<it<<endl; 
-        if(it == 0){
-        cout<<"MinAngle: "<<minAngle<<" maxAngle: "<<maxAngle<<" AngleStep: "<<angleStep;
-        cout<<" MinTack: "<<minTack<<" maxTack: "<<maxTack<<" tackSte: "<<tackStep<<endl;
-        }
-
+        
         tackLimit = bestTack;
         tackStatus = 1;
     }
@@ -616,7 +610,8 @@ void advancedMovement(int boatIndex){
     int tackStatus = boats[boatIndex].getTackStatus();
     physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
 
-    double trueWindAngle = (wind*-1)%north;
+    physVector w = boats[boatIndex].getWind();
+    double trueWindAngle = (w*-1)%north;
     double trueTargetAngle = (vectToTarget)%north;
     double angleDifference = abs(trueWindAngle-trueTargetAngle);
 
@@ -627,7 +622,7 @@ void advancedMovement(int boatIndex){
         targetIndex=(++targetIndex%2);
         boats[boatIndex].setTargetIndex(targetIndex);
     }
-    if(angleDifference >=35.0 && vectToTarget.getMagnitude() < 50.0){
+    if(angleDifference >=35.0 || vectToTarget.getMagnitude() < 10.0){
         tackStatus = 0;
         //boat can sail towards target
         chaseTarget(boatIndex);
@@ -657,7 +652,8 @@ void ruleSet(int boatIndex){
     int tackTimer = boats[boatIndex].getTackTimer();
     int tackLimit = boats[boatIndex].getTackLimit();
     //obtain true wind angle
-    double trueWindAngle = (wind*-1)%north;
+    physVector w = boats[boatIndex].getWind();
+    double trueWindAngle = (w*-1)%north;
     physVector vectToTarget = targets[targetIndex]-boats[boatIndex].getPosition();
 
     if(vectToTarget.getMagnitude()<3.0){
@@ -755,8 +751,6 @@ static void display(void){
             }
         }
         for(int i =0; i<boats.size(); i++){
-            //if(timeStep%10000==0)    cout<<"Boat: " <<i/4<<" With pilot: "<<boats[i].getPilot()<<endl;
-            //move and draw boats
             if(i<boats.size()-1)
                advancedMovement(i);
             else
@@ -777,7 +771,7 @@ static void key(unsigned char key, int xx, int yy){
     switch (key){
         case 27 :
         case 'q':
-            glutLeaveMainLoop();
+            exit(0);
             break;
     }
 
@@ -852,7 +846,6 @@ void initAndRun(int argc, char *argv[]){
     glutMainLoop();
 }
 
- //Program entry point
  void printIndividualsToFile(int c){
     ostringstream strs;
 	strs << c;
@@ -872,24 +865,7 @@ void initAndRun(int argc, char *argv[]){
     fclose(fileHandler);
  }
 
-int main(int argc, char *argv[]){
-    /*
-    glEnable(GL_LIGHT0);
-    glEnable(GL_NORMALIZE);
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_LIGHTING);
-
-    glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT,   mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE,   mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR,  mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
-    */
-
+void train(int argc, char *argv[]){
     double bestFitness = (double)INT32_MAX;
     int bestIndex =0;
     for(; runIndex<(POPULATION_SIZE/RUN_SIZE); runIndex++){
@@ -905,12 +881,12 @@ int main(int argc, char *argv[]){
         for(int i=0; i<RUN_SIZE; i++){
             double fitness = 0;
             int loops = 0;
-            for(int j=0; j<4; j++){
+            for(int j=0; j<64; j++){
                 fitness+=boats[i+j].getFinishTime();
                 loops+=boats[i+j].getLoopCount();
             }
             individuals[i+runIndex*RUN_SIZE].loops = loops;
-            individuals[i+runIndex*RUN_SIZE].fitness = fitness/4.0 + 0.1*((double)individuals[i+runIndex*RUN_SIZE].iterations) - 5000.0;
+            individuals[i+runIndex*RUN_SIZE].fitness = fitness/64.0 + 0.1*((double)individuals[i+runIndex*RUN_SIZE].iterations);
             avgFitness+=individuals[i+runIndex*RUN_SIZE].fitness;
             if(individuals[i+runIndex*RUN_SIZE].fitness < bestFitness){
                 bestIndex = i+runIndex*RUN_SIZE;
@@ -928,8 +904,8 @@ int main(int argc, char *argv[]){
         int pilot[RUN_SIZE];
         for(int j =0; j<RUN_SIZE; j++){
             pilot[j] = generateOffspring();
-            for(int l=0; l<4; l++){
-                boats[l+(j*4)].setPilot(pilot[j]);
+            for(int l=0; l<64; l++){
+                boats[l+(j*64)].setPilot(pilot[j]);
                 //cout<<"Boat: "<<l+(j*4)<<" Pilot: "<<pilot[j]<<" BoatPilot: "<<boats[l+(j*4)].getPilot()<<endl;
             }
             /*
@@ -951,12 +927,12 @@ int main(int argc, char *argv[]){
         for(int l =0; l<RUN_SIZE; l++){
             double fitness = 0;
             int loops = 0;
-            for(int j=0; j<4; j++){
+            for(int j=0; j<64; j++){
                 fitness += boats[l+j].getFinishTime();
                 loops += boats[l+j].getLoopCount();
             }
             individuals[pilot[l]].loops = loops;
-            individuals[pilot[l]].fitness = fitness/4.0 + 0.1*((double)individuals[pilot[l]].iterations) - 5000.0;
+            individuals[pilot[l]].fitness = fitness/64.0 + 0.1*((double)individuals[pilot[l]].iterations);
             if(individuals[pilot[l]].fitness < bestFitness){
                 bestIndex = pilot[l];
                 bestFitness = individuals[pilot[l]].fitness;
@@ -978,5 +954,61 @@ int main(int argc, char *argv[]){
         cout<<"MinTack: "<<individuals[i].parameters[3]<<" MaxTack: "<<individuals[i].parameters[4]<<" TackStep: "<<individuals[i].parameters[5]<<endl<<endl;
     }
 
+}
+
+void menu(int argc, char *argv[]){
+    string ans;
+    cout<<"Would you like to train pilots or race pilots? (t for training, r for racing): ";
+    cin>>ans;
+    if(toupper(ans[0])=='T'){
+        //traing
+        cout<<"Would you like to run the GUI? (y/n): ";
+        cin>>ans;
+        if(toupper(ans[0])=='Y'){
+            GUI = true;
+        }
+        else{
+            GUI = false;
+        }
+
+        cout<<"Would you like to run with the default parameters? (y/n): ";
+        cin>>ans;
+        if(toupper(ans[0])=='N'){
+            //ask for new parameters
+            cout<<"How many individuals do you want for the initial population? ";
+            cin>>POPULATION_SIZE;
+            cout<<"For how many generations do you want to run the GA? ";
+            cin>>GENERATIONS;
+        }
+        train(argc, argv);
+    }
+    else if (toupper(ans[0])=='R'){
+        //race
+    }
+    else{
+        cout<<"Not a valid option, exiting program...\n";
+        exit(0);
+    }
+}
+
+int main(int argc, char *argv[]){
+    /*
+    glEnable(GL_LIGHT0);
+    glEnable(GL_NORMALIZE);
+    glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_LIGHTING);
+
+    glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT,   mat_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE,   mat_diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR,  mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
+    */
+    menu(argc, argv);
+    
     return EXIT_SUCCESS;
 }

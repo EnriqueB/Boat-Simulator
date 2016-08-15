@@ -43,7 +43,7 @@ class boat{
         void setRudder(double r);
         void setSail(double s) { sail = s; }
 	    void setDirection(double a);
-        void setTargetIndex(int t) { targetIndex = t; }
+        void setTargetIndex(int t) { targetIndex = (t%2); }
         void setTackAngle(double t);
         void setTackTimer(int t) { tackTimer = t; }
         void setTackLimit(int t) { tackLimit = t; }
@@ -54,6 +54,7 @@ class boat{
 
         //getters
         physVector getPosition() { return position; }
+        physVector getWind() { return wind; }
         double getRudder() { return rudder; }
         double getSail() { return sail; }
         double getDirection() { return direction; }
@@ -308,12 +309,12 @@ void boat::moveBoat(long long timeStep){
     if (BoatWindAngle> 180.0){
         BoatWindAngle = 360.0-BoatWindAngle;
     }
-    if (BoatWindAngle < angle_sailingPoints[0]){
+    if (BoatWindAngle < angle_sailingPoints[0]-2.0){
         //no go zone
         speed = 0.10;
         leewayForce = 0.3;
     }
-    else if(BoatWindAngle >= angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
+    else if(BoatWindAngle >= angle_sailingPoints[0]-2.0 && BoatWindAngle <=angle_sailingPoints[1]){
         double m = (speed_sailingPoints[1]-speed_sailingPoints[0])/(angle_sailingPoints[1]-angle_sailingPoints[0]);
         double b = speed_sailingPoints[0] - m*angle_sailingPoints[0];
         speed = m* BoatWindAngle + b;
