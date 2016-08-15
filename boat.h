@@ -70,8 +70,8 @@ class boat{
         double getLeeway() { return leeway; }
         long long getFinishTime(){ return finishTime; }
 
-        void completedLoop(long long time) { 
-                                loopCount++; 
+        void completedLoop(long long time) {
+                                loopCount++;
                                 if(loopCount==4)    finishTime = time;
                              }
 
@@ -203,7 +203,7 @@ double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
             leewayForce = 0.3;
         }
         else if(BoatWindAngle > angle_sailingPoints[0] && BoatWindAngle <=angle_sailingPoints[1]){
-            double m = (speed_sailingPoints[1]-speed_sailingPoints[1])/(angle_sailingPoints[1]-angle_sailingPoints[0]);
+            double m = (speed_sailingPoints[1]-speed_sailingPoints[0])/(angle_sailingPoints[1]-angle_sailingPoints[0]);
             double b = speed_sailingPoints[0] - m*angle_sailingPoints[0];
             speed = m* BoatWindAngle + b;
             leewayForce = 1-speed+0.15;
@@ -236,7 +236,6 @@ double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
             leewayVector = leewayVector*-1.0;
         }
         leewayVector = (leewayVector * (leewayForce * leeway))*0.005;
-
         for(int tack = minTack; tack<maxTack; tack+=tackStep){
             pos = position;
             pos = pos + directionVector*((double)tack);
@@ -261,7 +260,7 @@ double boat::bestAngle(int minAngle, int maxAngle, int angleStep,
             }
             else{
                 //original position is in shallow waters
-                if(x>tack || x< 0){
+                if(x>tack || x<=0){
                     //boat never reaches deep waters
                     timeDeepWaters = 0;
                 }
@@ -318,7 +317,7 @@ void boat::moveBoat(long long timeStep){
         double m = (speed_sailingPoints[1]-speed_sailingPoints[0])/(angle_sailingPoints[1]-angle_sailingPoints[0]);
         double b = speed_sailingPoints[0] - m*angle_sailingPoints[0];
         speed = m* BoatWindAngle + b;
-        leewayForce = 1-speed+0.15;
+        leewayForce = 1-speed+0.05;
     }
     else if(BoatWindAngle > angle_sailingPoints[1] && BoatWindAngle <=angle_sailingPoints[2]){
         speed = speed_sailingPoints[1];

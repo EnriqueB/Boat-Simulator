@@ -379,7 +379,7 @@ void drawBoat(int boatIndex){
 }
 
 /*
- * Base chasing method. The boat makes a 
+ * Base chasing method. The boat makes a
  * straight line towards the target
  */
 void chaseTarget(int boatIndex){
@@ -560,7 +560,7 @@ void tackManager(int boatIndex){
         int tackStep = individuals[pilot].parameters[5];
         tackAngle = boats[boatIndex].bestAngle(minAngle, maxAngle, angleStep, minTack, maxTack, tackStep, targets[targetIndex], it, bestTack);
         individuals[pilot].iterations = it;
-        
+
         tackLimit = bestTack;
         tackStatus = 1;
     }
@@ -984,6 +984,27 @@ void menu(int argc, char *argv[]){
     }
     else if (toupper(ans[0])=='R'){
         //race
+        int racers;
+        cout<<"How many individuals would you like to race? ";
+        cin>>racers;
+        cout<<"Please type the parameters for the racers\n";
+        for(int i=0; i<racers; i++){
+            cout<<"MinAngle: ";
+            cin>>individuals[i].parameters[0];
+            cout<<"MaxAngle: ";
+            cin>>individuals[i].parameters[1];
+            cout<<"AngleStep: ";
+            cin>>individuals[i].parameters[2];
+            cout<<"MinTack: ";
+            cin>>individuals[i].parameters[3];
+            cout<<"MaxTack: ";
+            cin>>individuals[i].parameters[4];
+            cout<<"tackStep: ";
+            cin>>individuals[i].parameters[5];
+        }
+        initVectors(racers);
+        GUI = true;
+        initAndRun(argc, argv);
     }
     else{
         cout<<"Not a valid option, exiting program...\n";
@@ -1009,6 +1030,6 @@ int main(int argc, char *argv[]){
     glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
     */
     menu(argc, argv);
-    
+
     return EXIT_SUCCESS;
 }
