@@ -14,7 +14,7 @@
 
 #define FPS 60.0
 
-int RUN_SIZE = 5;
+int RUN_SIZE = 1;
 int POPULATION_SIZE = 100;
 int TOURNAMENT_SIZE = 5;
 int GENERATIONS = 400;
@@ -373,7 +373,21 @@ void drawBoat(int boatIndex){
             glColor3d(0, 0, 0);
             glutSolidSphere(0.50, 20, 3);
         glPopMatrix();
-        glTranslated(0,0,0);
+
+        //rudder
+        movX = 2.3*cos(boats[boatIndex].getDirection()*M_PI/180.0);
+        movZ = 2.3*sin(boats[boatIndex].getDirection()*M_PI/180.0);
+        double rudderAngle = boats[boatIndex].getRudder();
+        rudderAngle -= 90;
+        glPushMatrix();
+            glTranslated(pos.getComponent(0)-movX, pos.getComponent(1)-0.8, pos.getComponent(2)-movZ);
+            glRotated(ang+rudderAngle, 0, 1, 0);
+            glColor3d(0,0,0);
+            glScalef(2.0, 1.2, 0.3);
+            glutWireCube(1);
+            glColor3d(1, 1, 1);
+            glutSolidCube(1);
+        glPopMatrix();
     glPopMatrix();
 
 }
