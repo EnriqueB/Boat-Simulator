@@ -325,6 +325,7 @@ void changeSize(int w, int h){
 void drawBoat(int boatIndex){
     physVector pos = boats[boatIndex].getPosition();
     double ang = 360-boats[boatIndex].getDirection(); //rotate angle to the coordinate system used by opengl
+    glLineWidth(2);
     glPushMatrix();
         //hull
         glPushMatrix();
@@ -339,9 +340,9 @@ void drawBoat(int boatIndex){
 
         //mast
         glPushMatrix();
-            glTranslated(pos.getComponent(0), pos.getComponent(1)+2, pos.getComponent(2));
+            glTranslated(pos.getComponent(0), pos.getComponent(1)+2.5, pos.getComponent(2));
             glRotated(ang, 0, 1, 0);
-            glScalef(0.3, 5, 0.3);
+            glScalef(0.3, 6.0, 0.3);
             glColor3d(0, 0, 0);
             glutWireCube(0.8);
             glColor3d(0.65,0.35,0);
@@ -350,17 +351,41 @@ void drawBoat(int boatIndex){
 
         //cloth sail
         double movX, movZ;
-        movX = 0.5*sin(ang*M_PI/180.0);
-        movZ = 0.5*cos(ang*M_PI/180.0);
+        movX = 3.9*cos(ang*M_PI/180.0);
+        movZ = -3.9*sin(ang*M_PI/180.0);
+        double windAngle = (boats[boatIndex].getWind()*-1)%north;
+        double BoatWindAngle = abs(windAngle - boats[boatIndex].getDirection());
+        double rot = BoatWindAngle/2.0;
+
         glPushMatrix();
-            glTranslated(pos.getComponent(0)+movX, pos.getComponent(1)+3.6, pos.getComponent(2)+movZ);
-            glRotated(ang+90.0, 0, 1, 0);
-            glScalef(1.0, 0.9, 0.3);
+            glTranslated(pos.getComponent(0)+movX, pos.getComponent(1)+3.9, pos.getComponent(2)+movZ);
+            //glRotated(ang+90.0+rot, 0, 1, 0);
+            glRotated(ang+90, 0, 1, 0);
+            //glScalef(1.0, 0.9, 0.3);
             glColor3d(0, 0, 0);
-            glutWireCube(0.8);
+            //glutWireCube(0.8);
             if(boatIndex==boats.size()-1) glColor3d(0.0,0.0,0.0);
             else glColor3d(1,1,1);
-            glutSolidCube(0.8);
+            //glutSolidCube(0.8);
+
+            glBegin(GL_TRIANGLE_STRIP);
+                glVertex3f(0.0f, 1.0f, -4.0f);    // lower left vertex
+                glVertex3f(0.0f, -1.6f, -4.0f);    // lower right vertex
+                glVertex3f(1.5f,  -1.6f, -4.0f);    // upper vertex
+                glVertex3f(0.0f, 1.0f, -3.9f);    // lower left vertex
+                glVertex3f(0.0f, -1.6f, -3.9f);    // lower right vertex
+                glVertex3f(1.5f,  -1.6f, -3.9f);    // upper vertex
+            glEnd();
+
+            glColor3d(0,0,0);
+            glBegin(GL_LINE_STRIP);
+                glVertex3f(0.0f, 1.0f, -4.0f);    // lower left vertex
+                glVertex3f(0.0f, -1.6f, -4.0f);    // lower right vertex
+                glVertex3f(1.5f,  -1.6f, -4.0f);    // upper vertex
+                glVertex3f(0.0f, 1.0f, -3.9f);    // lower left vertex
+                glVertex3f(0.0f, -1.6f, -3.9f);    // lower right vertex
+                glVertex3f(1.5f,  -1.6f, -3.9f);    // upper vertex
+            glEnd();
         glPopMatrix();
 
         //sphere at the front of the boat
@@ -389,6 +414,8 @@ void drawBoat(int boatIndex){
             glutSolidCube(1);
         glPopMatrix();
     glPopMatrix();
+
+
 
 }
 
