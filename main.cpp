@@ -14,7 +14,7 @@
 
 #define FPS 60.0
 
-int RUN_SIZE = 1;
+int RUN_SIZE = 5;
 int POPULATION_SIZE = 100;
 int TOURNAMENT_SIZE = 5;
 int GENERATIONS = 200;
