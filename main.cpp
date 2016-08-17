@@ -18,7 +18,7 @@ int RUN_SIZE = 5;
 int POPULATION_SIZE = 100;
 int TOURNAMENT_SIZE = 5;
 int GENERATIONS = 200;
-int XOVER_RATE = 0.9;
+int XOVER_RATE = 0.8;
 
 bool GUI = true;
 
@@ -95,12 +95,12 @@ struct INDIVIDUAL{
         parameters[1] = rand()%180;
         parameters[2] = rand()%20 + 1;
         parameters[3] = rand()%100 + 1;
-        parameters[4] = rand()%1000 + 1;
+        parameters[4] = rand()%2000 + 1;
         parameters[5] = rand()%50 + 1;
 
         while((parameters[3] > parameters[4]) || (parameters[3] == parameters[4])){
             parameters[3] = rand()%100 +1;
-            parameters[4] = rand()%1000 +1;
+            parameters[4] = rand()%2000 +1;
         }
     }
 };
@@ -161,7 +161,7 @@ INDIVIDUAL mutate(int parent){
 
     //A different sigma is used for angles and tacks
     double sigmaAngle = 10;
-    double sigmaTack = 100;
+    double sigmaTack = 250;
     for(int i =0; i<3; i++){
         do{ //parameters cannot be negative
             random = ((double)rand()/RAND_MAX);
@@ -177,7 +177,7 @@ INDIVIDUAL mutate(int parent){
         }while(ind.parameters[i]<=0);
     }
     //minTack cannot be smaller than maxTack and they cannot be equal
-    while((ind.parameters[3] > ind.parameters[4]) || (ind.parameters[3] == ind.parameters[4])){
+    while((ind.parameters[3] > ind.parameters[4]) || (ind.parameters[3] == ind.parameters[4]) || ind.parameters[3] <=0 || ind.parameters[4] <= 0){
         random = ((double)rand()/RAND_MAX);
         random = -1.0 + random*2.0;
         ind.parameters[3] = individuals[parent].parameters[3]+sigmaTack*random;
