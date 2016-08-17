@@ -95,7 +95,7 @@ boat::boat(){
     loopCount = 0;
     lastLoop = 0;
     leeway = 0;
-    finishTime = 18000;
+    finishTime = 30000;
 }
 
 boat::boat(physVector w, physVector t, double x, double y, double dir, double angles[], double speeds[], int ind, double lw){
@@ -124,7 +124,7 @@ boat::boat(physVector w, physVector t, double x, double y, double dir, double an
     lastLoop = 0;
     pilot = ind;
     leeway = lw;
-    finishTime = 18000;
+    finishTime = 30000;
 }
 
 void boat::setRudder(double r){

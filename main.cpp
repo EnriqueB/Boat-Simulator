@@ -15,10 +15,10 @@
 #define FPS 60.0
 
 int RUN_SIZE = 5;
-int POPULATION_SIZE = 100;
+int POPULATION_SIZE = 300;
 int TOURNAMENT_SIZE = 5;
-int GENERATIONS = 200;
-int XOVER_RATE = 0.8;
+int GENERATIONS = 300;
+int XOVER_RATE = 0.75;
 
 bool GUI = true;
 
@@ -160,8 +160,8 @@ INDIVIDUAL mutate(int parent){
     double random;
 
     //A different sigma is used for angles and tacks
-    double sigmaAngle = 10;
-    double sigmaTack = 250;
+    double sigmaAngle = 20;
+    double sigmaTack = 500;
     for(int i =0; i<3; i++){
         do{ //parameters cannot be negative
             random = ((double)rand()/RAND_MAX);
