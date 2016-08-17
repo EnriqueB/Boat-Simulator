@@ -95,12 +95,12 @@ struct INDIVIDUAL{
         parameters[1] = rand()%180;
         parameters[2] = rand()%20 + 1;
         parameters[3] = rand()%100 + 1;
-        parameters[4] = rand()%2000 + 1;
+        parameters[4] = rand()%3000 + 1;
         parameters[5] = rand()%50 + 1;
 
         while((parameters[3] > parameters[4]) || (parameters[3] == parameters[4])){
             parameters[3] = rand()%100 +1;
-            parameters[4] = rand()%2000 +1;
+            parameters[4] = rand()%3000 +1;
         }
     }
 };
