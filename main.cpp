@@ -14,7 +14,7 @@
 
 #define FPS 60.0
 
-int RUN_SIZE = 5;
+int RUN_SIZE = 1;
 int POPULATION_SIZE = 300;
 int TOURNAMENT_SIZE = 5;
 int GENERATIONS = 300;
@@ -356,7 +356,6 @@ void drawBoat(int boatIndex){
         double windAngle = (boats[boatIndex].getWind()*-1)%north;
         double BoatWindAngle = abs(windAngle - boats[boatIndex].getDirection());
         double rot = BoatWindAngle/2.0;
-
         glPushMatrix();
             glTranslated(pos.getComponent(0)+movX, pos.getComponent(1)+3.9, pos.getComponent(2)+movZ);
             //glRotated(ang+90.0+rot, 0, 1, 0);
@@ -388,31 +387,104 @@ void drawBoat(int boatIndex){
             glEnd();
         glPopMatrix();
 
-        //sphere at the front of the boat
-        movX = 2.4*cos(boats[boatIndex].getDirection()*M_PI/180.0);
-        movZ = 2.4*sin(boats[boatIndex].getDirection()*M_PI/180.0);
-        glPushMatrix();
-            glTranslated(pos.getComponent(0)+movX, pos.getComponent(1), pos.getComponent(2)+movZ);
-            glColor3d(0,0,0);
-            glutWireSphere(0.5, 20, 3);
-            glColor3d(0, 0, 0);
-            glutSolidSphere(0.50, 20, 3);
-        glPopMatrix();
-
         //rudder
         movX = 2.3*cos(boats[boatIndex].getDirection()*M_PI/180.0);
         movZ = 2.3*sin(boats[boatIndex].getDirection()*M_PI/180.0);
         double rudderAngle = boats[boatIndex].getRudder();
         rudderAngle -= 90;
         glPushMatrix();
-            glTranslated(pos.getComponent(0)-movX, pos.getComponent(1)-0.8, pos.getComponent(2)-movZ);
+            glTranslated(pos.getComponent(0)-movX, pos.getComponent(1)-0.5, pos.getComponent(2)-movZ);
             glRotated(ang+rudderAngle, 0, 1, 0);
             glColor3d(0,0,0);
-            glScalef(2.0, 1.2, 0.3);
+            glScalef(1.8, 1.2, 0.3);
             glutWireCube(1);
             glColor3d(1, 1, 1);
             glutSolidCube(1);
         glPopMatrix();
+
+        //cabin at the back of the boat
+        movX = 1.8*cos(boats[boatIndex].getDirection()*M_PI/180.0);
+        movZ = 1.8*sin(boats[boatIndex].getDirection()*M_PI/180.0);
+        glPushMatrix();
+            glTranslated(pos.getComponent(0)-movX, pos.getComponent(1)+1.5, pos.getComponent(2)-movZ);
+            glRotated(ang, 0, 1, 0);
+            glScalef(0.6, 0.8, 1.0);
+            glColor3d(0,0,0);
+            glutWireCube(1.9);
+            glColor3d(0.65, 0.35, 0);
+            glutSolidCube(1.9);
+        glPopMatrix();
+
+        //windows at the side of the cabin
+        for(int i=0; i<2; i++){
+            double h = pow(pow(2.0-(double)i*0.5, 2)+pow(0.8,2), 0.5);
+            double theta = asin(0.8/h);
+
+            //cout<<h<<"   "<<theta<<endl;
+            movX = h*cos((boats[boatIndex].getDirection())*M_PI/180.0 + theta);
+            movZ = h*sin((boats[boatIndex].getDirection())*M_PI/180.0 + theta);
+            glPushMatrix();
+                glTranslated(pos.getComponent(0)-movX, pos.getComponent(1)+1.9, pos.getComponent(2)-movZ);
+                glRotated(ang, 0, 1, 0);
+                glColor3d(1, 1, 1);
+                glutSolidSphere(0.2, 20, 20);
+            glPopMatrix();
+        }
+
+        for(int i=0; i<2; i++){
+            double h = pow(pow(2.0-(double)i*0.5, 2)+pow(0.8,2), 0.5);
+            double theta = asin(0.8/h);
+            //cout<<h<<"   "<<theta<<endl;
+            movX = h*cos((boats[boatIndex].getDirection())*M_PI/180.0 - theta);
+            movZ = h*sin((boats[boatIndex].getDirection())*M_PI/180.0 - theta);
+            glPushMatrix();
+                glTranslated(pos.getComponent(0)-movX, pos.getComponent(1)+1.9, pos.getComponent(2)-movZ);
+                glRotated(ang, 0, 1, 0);
+                glColor3d(1, 1, 1);
+                glutSolidSphere(0.2, 20, 20);
+            glPopMatrix();
+        }
+
+        //window at the back and front of the cabin
+        movX = 1.8*cos(boats[boatIndex].getDirection()*M_PI/180.0);
+        movZ = 1.8*sin(boats[boatIndex].getDirection()*M_PI/180.0);
+        glPushMatrix();
+            glTranslated(pos.getComponent(0)-movX, pos.getComponent(1)+1.9, pos.getComponent(2)-movZ);
+            glRotated(ang, 0, 1, 0);
+            glScalef(0.6, 0.2, 0.6);
+            glColor3d(0,0,0);
+            glutWireCube(1.95);
+            glColor3d(1, 1, 1);
+            glutSolidCube(1.95);
+        glPopMatrix();
+
+        //front of the boat
+        movX = 2.7*cos(boats[boatIndex].getDirection()*M_PI/180.0);
+        movZ = 2.7*sin(boats[boatIndex].getDirection()*M_PI/180.0);
+        glPushMatrix();
+            glTranslated(pos.getComponent(0)+movX, pos.getComponent(1)+0.1, pos.getComponent(2)+movZ);
+            glRotated(ang+45, 0, 1, 0);
+            glScalef(1, 2.5, 1);
+            glColor3d(0,0,0);
+            glutWireCube(pow(2, 0.5));
+            glColor3d(0.65, 0.35, 0);
+            glutSolidCube(pow(2, 0.5));
+        glPopMatrix();
+
+        movX = 2*cos(boats[boatIndex].getDirection()*M_PI/180.0);
+        movZ = 2*sin(boats[boatIndex].getDirection()*M_PI/180.0);
+        glPushMatrix();
+            glTranslated(pos.getComponent(0)+movX, pos.getComponent(1)-0.51, pos.getComponent(2)+movZ);
+            glRotated(ang, 0, 1, 0);
+            glScalef(0.7, 2.5, 1);
+            glColor3d(0,0,0);
+            glutWireCube(1.95);
+            glColor3d(0.65, 0.35, 0);
+            glutSolidCube(1.95);
+        glPopMatrix();
+
+
+
     glPopMatrix();
 
 

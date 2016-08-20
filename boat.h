@@ -104,7 +104,7 @@ boat::boat(physVector w, physVector t, double x, double y, double dir, double an
 
     position.setComponent(0, x);
     position.setComponent(2, y);
-    position.setComponent(1, 0);
+    position.setComponent(1, -0.5);
     rudder = 90;
     sail = 0;
     direction = dir;
