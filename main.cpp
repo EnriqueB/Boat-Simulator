@@ -14,11 +14,11 @@
 
 #define FPS 60.0
 
-int RUN_SIZE = 1;
+int RUN_SIZE = 3;
 int POPULATION_SIZE = 300;
 int TOURNAMENT_SIZE = 5;
 int GENERATIONS = 300;
-int XOVER_RATE = 0.75;
+int XOVER_RATE = 0.9;
 
 bool GUI = true;
 
@@ -62,7 +62,15 @@ double speedPoints[][3] = {{0.3, 0.95, 0.8},
                                 {0.3, 0.95, 0.8},
                                 {0.3, 0.95, 0.8},
                                 {0.3, 0.95, 0.8}};
+
+double colors [][3] = {{1.0, 0.0, 0.0},         //red
+                        {0.0, 1.0, 0.0},        //green
+                        {1.0, 1.0, 0.0},        //yellow
+                        {1.0, 1.0, 1.0},        //white
+                        {1.0, 0.0, 1.0}};       //purple
+
 bool usedSrand = false;
+bool racing = false;
 
 
 /*
@@ -358,15 +366,11 @@ void drawBoat(int boatIndex){
         double rot = BoatWindAngle/2.0;
         glPushMatrix();
             glTranslated(pos.getComponent(0)+movX, pos.getComponent(1)+3.9, pos.getComponent(2)+movZ);
-            //glRotated(ang+90.0+rot, 0, 1, 0);
             glRotated(ang+90, 0, 1, 0);
-            //glScalef(1.0, 0.9, 0.3);
-            glColor3d(0, 0, 0);
-            //glutWireCube(0.8);
-            if(boatIndex==boats.size()-1) glColor3d(0.0,0.0,0.0);
-            else glColor3d(1,1,1);
-            //glutSolidCube(0.8);
 
+            if(boatIndex==boats.size()-1) glColor3d(0.0,0.0,0.0);
+            else    glColor3d(colors[boatIndex/64][0],colors[boatIndex/64][1],colors[boatIndex/64][2]);
+            
             glBegin(GL_TRIANGLE_STRIP);
                 glVertex3f(0.0f, 1.0f, -4.0f);    // lower left vertex
                 glVertex3f(0.0f, -1.6f, -4.0f);    // lower right vertex
@@ -376,8 +380,8 @@ void drawBoat(int boatIndex){
                 glVertex3f(1.5f,  -1.6f, -3.9f);    // upper vertex
             glEnd();
 
-            glColor3d(0,0,0);
-            glBegin(GL_LINE_STRIP);
+            glColor3d(0, 0, 0);
+                glBegin(GL_LINE_STRIP);
                 glVertex3f(0.0f, 1.0f, -4.0f);    // lower left vertex
                 glVertex3f(0.0f, -1.6f, -4.0f);    // lower right vertex
                 glVertex3f(1.5f,  -1.6f, -4.0f);    // upper vertex
@@ -772,11 +776,6 @@ void ruleSet(int boatIndex){
     if(vectToTarget.getMagnitude()<3.0){
         //reached target, move to next;
             int loopCount = boats[boatIndex].getLoopCount();
-            cout<<"************************\n";
-            cout<<"Boat: "<<boatIndex<<" ";
-            cout<<"Loop count: "<<loopCount;
-            cout<<" In: "<<(double)(timeStep-boats[boatIndex].getLastLoop())/FPS<<" seconds\n";
-            cout<<"************************\n";
             boats[boatIndex].completedLoop(timeStep);
             boats[boatIndex].setLastLoop(timeStep);
         targetIndex=(++targetIndex%2);
@@ -838,19 +837,14 @@ static void display(void){
 
             // Draw ground
 
-            //????
-            //glColor3f(0,0,.8);
-            glClearColor(0, 0, 1, 1);
+            glClearColor(1, 1, 1, 1);
             glBegin(GL_QUADS);
-                glColor3d(0, 0, 0.6);
+                glColor3d(0, 0, 0.5);
                 glVertex3f(-1000.0f, -0.05f, -1000.0f);
                 glVertex3f(-1000.0f, -0.05f, 1000.0f);
                 glVertex3f( 1000.0f, -0.05f, 1000.0f);
                 glVertex3f( 1000.0f, -0.05f, -1000.0f);
             glEnd();
-
-            glColor3d(0.65,0.35,0);
-            //physVector pos;
 
             //draw targets
             for(int i=0; i<2; i++){
@@ -862,6 +856,18 @@ static void display(void){
                     glutSolidSphere(1, 10, 10);
                 glPopMatrix();
             }
+        }
+        if(timeStep%600==0 && racing){
+            cout<<"\nRace stats: \n";
+            int racers = (boats.size()-1)/64;
+            for(int i =0; i< racers; i++){
+                double targetsReached = 0;
+                for(int j =0; j<64; j++){
+                    targetsReached += boats[j+64*i].getLoopCount();
+                }
+                cout<<"Pilot "<<i+1<<" average targets reached at "<<timeStep/60<<" seconds into the run: "<<targetsReached/64<<endl; 
+            }
+            cout<<"Base pilot targets reached at "<<timeStep/60<<" seconds into the run: "<<boats[boats.size()-1].getLoopCount()<<endl;
         }
         for(int i =0; i<boats.size(); i++){
             if(i<boats.size()-1)
@@ -949,7 +955,7 @@ void initAndRun(int argc, char *argv[]){
     glutIdleFunc(idle);
 
 
-    glClearColor(0.9,.9,.9,1);
+    glClearColor(1.0,1,1,1);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
@@ -1019,17 +1025,10 @@ void train(int argc, char *argv[]){
             pilot[j] = generateOffspring();
             for(int l=0; l<64; l++){
                 boats[l+(j*64)].setPilot(pilot[j]);
-                //cout<<"Boat: "<<l+(j*4)<<" Pilot: "<<pilot[j]<<" BoatPilot: "<<boats[l+(j*4)].getPilot()<<endl;
             }
-            /*
-        cout<<pilot[j]<<" Fitness: "<<individuals[pilot[j]].fitness<<" Iterations: "<<individuals[pilot[j]].iterations<<endl;
-        cout<<"MinAngle: "<<individuals[pilot[j]].parameters[0]<<" MaxAngle: "<<individuals[pilot[j]].parameters[1]<<" AngleStep: "<<individuals[pilot[j]].parameters[2]<<endl;
-        cout<<"MinTack: "<<individuals[pilot[j]].parameters[3]<<" MaxTack: "<<individuals[pilot[j]].parameters[4]<<" TackStep: "<<individuals[pilot[j]].parameters[5]<<endl<<endl;
-            */
         }
         //finished generating offspring
         cout<<"Finished generating offspring\n";
-        //cout<<"boatsSize: "<<boats.size()<<endl;
         if(GUI) initAndRun(argc, argv);
         else{
             while(timeStep <=18000){
@@ -1098,8 +1097,12 @@ void menu(int argc, char *argv[]){
     else if (toupper(ans[0])=='R'){
         //race
         int racers;
-        cout<<"How many individuals would you like to race? ";
+        cout<<"How many individuals would you like to race? (Maximum 5) ";
         cin>>racers;
+        if(racers > 5){
+            cout<<"Invalid number of racers.\n";
+            exit(0);
+        }
         cout<<"Please type the parameters for the racers\n";
         for(int i=0; i<racers; i++){
             cout<<"MinAngle: ";
@@ -1117,6 +1120,12 @@ void menu(int argc, char *argv[]){
         }
         initVectors(racers);
         GUI = true;
+        racing = true;
+        cout<<"\nEach pilot is assigned a color. Pilot 1 has red sails, ";
+        cout<<"Pilot 2 has green sails,\nPilot 3 has yellow sails,";
+        cout<<"Pilot 4 has white sails and Pilot 5 has purple sails\n";
+        cout<<"Base pilot has black sails\n";
+        cout<<"To exit the simulation press the letter 'q'\n";
         initAndRun(argc, argv);
     }
     else{
@@ -1126,22 +1135,6 @@ void menu(int argc, char *argv[]){
 }
 
 int main(int argc, char *argv[]){
-    /*
-    glEnable(GL_LIGHT0);
-    glEnable(GL_NORMALIZE);
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_LIGHTING);
-
-    glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT,   mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE,   mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR,  mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
-    */
     menu(argc, argv);
 
     return EXIT_SUCCESS;
