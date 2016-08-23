@@ -1,8 +1,5 @@
 #include <GL/freeglut.h>
 #include <chrono>
-#include "physVector.h"
-#include "boat.h"
-
 #include <stdlib.h>
 #include <iostream>
 #include <time.h>
@@ -12,9 +9,14 @@
 #include <sstream>
 #include <string.h>
 
+#include "physVector.h"
+#include "boat.h"
+
 #define FPS 60.0
 
-int RUN_SIZE = 3;
+using namespace std;
+
+int RUN_SIZE = 5;
 int POPULATION_SIZE = 300;
 int TOURNAMENT_SIZE = 5;
 int GENERATIONS = 300;
@@ -22,7 +24,6 @@ int XOVER_RATE = 0.9;
 
 bool GUI = true;
 
-using namespace std;
 
 //Clock used for enforcing FPS
 auto start = chrono::steady_clock::now();
@@ -369,7 +370,7 @@ void drawBoat(int boatIndex){
             glRotated(ang+90, 0, 1, 0);
 
             if(boatIndex==boats.size()-1) glColor3d(0.0,0.0,0.0);
-            else    glColor3d(colors[boatIndex/64][0],colors[boatIndex/64][1],colors[boatIndex/64][2]);
+            else    glColor3d(colors[(boatIndex/64)%5][0],colors[(boatIndex/64)%5][1],colors[(boatIndex/64)%5][2]);
             
             glBegin(GL_TRIANGLE_STRIP);
                 glVertex3f(0.0f, 1.0f, -4.0f);    // lower left vertex
@@ -716,6 +717,7 @@ void tackManager(int boatIndex){
             tackTimer++;
         }
     }
+    //save status
     boats[boatIndex].setTackAngle(tackAngle);
     boats[boatIndex].setTackTimer(tackTimer);
     boats[boatIndex].setTackLimit(tackLimit);
@@ -733,7 +735,7 @@ void advancedMovement(int boatIndex){
     double angleDifference = abs(trueWindAngle-trueTargetAngle);
 
     if(vectToTarget.getMagnitude()<3.0){
-        //reached target, move to next;
+        //reached target, move towards next target
         boats[boatIndex].completedLoop(timeStep);
         boats[boatIndex].setLastLoop(timeStep);
         targetIndex=(++targetIndex%2);
@@ -746,10 +748,14 @@ void advancedMovement(int boatIndex){
         boats[boatIndex].setTackStatus(tackStatus);
     }
     else{
+        //tacking is needed
         tackManager(boatIndex);
     }
 }
 
+/*
+ * Base rule set
+ */
 void ruleSet(int boatIndex){
     /*
      * 1.- Understand the situation:
@@ -835,8 +841,7 @@ static void display(void){
             x+lx, 10.0f, z+lz,
             0.0f, 1.0f, 0.0f);
 
-            // Draw ground
-
+            // Draw ocean
             glClearColor(1, 1, 1, 1);
             glBegin(GL_QUADS);
                 glColor3d(0, 0, 0.5);
@@ -857,6 +862,7 @@ static void display(void){
                 glPopMatrix();
             }
         }
+        //Display information if racing is on
         if(timeStep%600==0 && racing){
             cout<<"\nRace stats: \n";
             int racers = (boats.size()-1)/64;
@@ -869,11 +875,14 @@ static void display(void){
             }
             cout<<"Base pilot targets reached at "<<timeStep/60<<" seconds into the run: "<<boats[boats.size()-1].getLoopCount()<<endl;
         }
+
+        //Draw boats
         for(int i =0; i<boats.size(); i++){
             if(i<boats.size()-1)
                advancedMovement(i);
+
             else
-                ruleSet(i);
+                ruleSet(i); //only the last boat follows the base rule set
 
             boats[i].moveBoat(timeStep);
             if(GUI) drawBoat(i);
@@ -890,7 +899,7 @@ static void key(unsigned char key, int xx, int yy){
     switch (key){
         case 27 :
         case 'q':
-            exit(0);
+            exit(0); //quit
             break;
     }
 
@@ -915,6 +924,7 @@ void processSpecialKeys(int key, int xx, int yy){
 
     float fraction = 2.0f;
 
+    //camera movement
     switch (key) {
         case GLUT_KEY_LEFT :
             angle -= 0.05f;
@@ -929,17 +939,17 @@ void processSpecialKeys(int key, int xx, int yy){
         case GLUT_KEY_UP :
             x += lx * fraction;
             z += lz * fraction;
-            //cy += fraction/10;
             break;
         case GLUT_KEY_DOWN :
             x -= lx * fraction;
             z -= lz * fraction;
-            //cy -=fraction/10;
             break;
     }
 }
 
-
+/*
+ * Prepares the system to run the GUI
+ */
 void initAndRun(int argc, char *argv[]){
     glutInit(&argc, argv);
     glutInitWindowSize(1024,768);
@@ -964,6 +974,7 @@ void initAndRun(int argc, char *argv[]){
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
     glutMainLoop();
 }
+
 
  void printIndividualsToFile(int c){
     ostringstream strs;
@@ -1057,15 +1068,7 @@ void train(int argc, char *argv[]){
         fclose(fp);
         printIndividualsToFile(i+1);
     }
-
-    //check fitness
-
-    for(int i=0; i<POPULATION_SIZE; i++){
-        cout<<i<<" Fitness: "<<individuals[i].fitness<<" Iterations: "<<individuals[i].iterations<<endl;
-        cout<<"MinAngle: "<<individuals[i].parameters[0]<<" MaxAngle: "<<individuals[i].parameters[1]<<" AngleStep: "<<individuals[i].parameters[2]<<endl;
-        cout<<"MinTack: "<<individuals[i].parameters[3]<<" MaxTack: "<<individuals[i].parameters[4]<<" TackStep: "<<individuals[i].parameters[5]<<endl<<endl;
-    }
-
+    cout<<"Finished training\n";
 }
 
 void menu(int argc, char *argv[]){
@@ -1136,6 +1139,5 @@ void menu(int argc, char *argv[]){
 
 int main(int argc, char *argv[]){
     menu(argc, argv);
-
     return EXIT_SUCCESS;
 }

@@ -2,7 +2,6 @@
 #define BOAT_H
 
 #include "physVector.h"
-#include "battery.h"
 #include <string.h>
 #include <iostream>
 #include <cfloat>
@@ -18,7 +17,6 @@ class boat{
         physVector tide;
         double rudder;
         double sail;
-    	battery bat;
         int targetIndex;
 	    double direction;
         double angle_sailingPoints[3];
