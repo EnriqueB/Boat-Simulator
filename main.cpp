@@ -842,7 +842,7 @@ static void display(void){
             0.0f, 1.0f, 0.0f);
 
             // Draw ocean
-            glClearColor(1, 1, 1, 1);
+            glClearColor(0, 0, 1, 1);
             glBegin(GL_QUADS);
                 glColor3d(0, 0, 0.5);
                 glVertex3f(-1000.0f, -0.05f, -1000.0f);
